@@ -71,7 +71,12 @@ class AnimatedBroccoliApp(ctk.CTk):
 
 def create_app() -> AnimatedBroccoliApp:
     """Create and return the application."""
-    ctk.set_appearance_mode("System")
-    ctk.set_default_color_theme("green")
+    # Force a visible light appearance by default so widgets are readable
+    ctk.set_appearance_mode("Light")
+    # Use a standard built-in theme name for predictable colors
+    try:
+        ctk.set_default_color_theme("blue")
+    except Exception:
+        pass
 
     return AnimatedBroccoliApp()
