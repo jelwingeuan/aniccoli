@@ -44,6 +44,7 @@ class AnimatedBroccoliApp(ctk.CTk):
             self.content_frame,
             text="🥦",
             font=ctk.CTkFont(size=72),
+            text_color="#1f2937",
         )
         self.logo_label.pack(pady=(10, 5))
 
@@ -54,6 +55,7 @@ class AnimatedBroccoliApp(ctk.CTk):
                 size=34,
                 weight="bold",
             ),
+            text_color="#111827",
         )
         self.title_label.pack(pady=5)
 
@@ -65,6 +67,7 @@ class AnimatedBroccoliApp(ctk.CTk):
             ),
             font=ctk.CTkFont(size=16),
             justify="center",
+            text_color="#374151",
         )
         self.description_label.pack(pady=(5, 20))
 
