@@ -1,10 +1,10 @@
-"""Entry point for the Animated Broccoli desktop application."""
+"""Entry point for the Aniccoli desktop application."""
 
-from animated_broccoli.app import create_app
+from aniccoli.app import create_app
 
 
 def main() -> None:
-    """Start the Animated Broccoli application."""
+    """Start the Aniccoli application."""
     app = create_app()
     app.mainloop()
 

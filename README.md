@@ -1,8 +1,8 @@
-# 🥦 Animated Broccoli
+# 🥦 Aniccoli
 
 **Keep your 3D projects fresh, clean, and organized.**
 
-Animated Broccoli is a beginner-friendly Python desktop application designed to help 3D artists, animators, students, and game developers organize messy production folders.
+Aniccoli is a beginner-friendly Python desktop application designed to help 3D artists, animators, students, and game developers organize messy production folders.
 
 The application scans a selected folder, detects different asset types, and sorts Blender, Maya, Unity, texture, reference, render, audio, document, and archive files into a clean project structure.
 
@@ -10,7 +10,7 @@ The application scans a selected folder, detects different asset types, and sort
 
 3D projects can quickly become difficult to manage when models, textures, references, renders, and project files are stored in the same folder.
 
-Animated Broccoli helps solve this problem by automatically identifying files and organizing them into suitable folders based on:
+Aniccoli helps solve this problem by automatically identifying files and organizing them into suitable folders based on:
 
 * File extension
 * Software type
@@ -105,7 +105,7 @@ The goal is to reduce the time spent searching for files and help users maintain
 
 ## Texture Detection
 
-Animated Broccoli can identify common texture maps by checking file names.
+Aniccoli can identify common texture maps by checking file names.
 
 For example:
 
@@ -168,7 +168,7 @@ Project_Name/
 
 ## How It Works
 
-1. Open Animated Broccoli.
+1. Open Aniccoli.
 2. Select a folder containing your project assets.
 3. Allow the application to scan the folder.
 4. Review the detected files and categories.
@@ -179,7 +179,7 @@ Project_Name/
 
 ## Safe Organization
 
-Animated Broccoli is designed to avoid moving files without the user’s knowledge.
+Aniccoli is designed to avoid moving files without the user’s knowledge.
 
 Before any changes are made, the application shows a preview containing:
 
@@ -288,13 +288,13 @@ The application is planned to include a clean sidebar with the following section
 Clone the repository:
 
 ```bash
-git clone https://github.com/your-username/animated-broccoli.git
+git clone https://github.com/your-username/aniccoli.git
 ```
 
 Move into the project folder:
 
 ```bash
-cd animated-broccoli
+cd aniccoli
 ```
 
 Create a virtual environment:
@@ -329,7 +329,7 @@ python main.py
 
 ## Beginner Version
 
-The first version of Animated Broccoli will focus on:
+The first version of Aniccoli will focus on:
 
 * Selecting a folder
 * Scanning files
@@ -365,7 +365,7 @@ Planned future features include:
 
 ## Project Status
 
-Animated Broccoli is currently under development.
+Aniccoli is currently under development.
 
 The project is being built step by step with small and meaningful Git commits so that beginners can understand how each feature works.
 
@@ -403,6 +403,6 @@ Created as a Python learning project for organizing 3D art, animation, and game-
 
 ---
 
-🥦 **Animated Broccoli**
+🥦 **Aniccoli**
 
 Helping artists keep their digital workspace fresh.
