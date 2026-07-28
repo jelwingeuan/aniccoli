@@ -8,6 +8,11 @@ from typing import Optional
 
 import customtkinter as ctk
 
+from aniccoli.organizer import (
+    PlannedMove,
+    build_organization_plan,
+    count_conflict_renames,
+)
 from aniccoli.scanner import (
     AssetFile,
     calculate_total_size,
@@ -26,6 +31,7 @@ class AniccoliApp(ctk.CTk):
 
         self.selected_folder: Optional[Path] = None
         self.scanned_assets: list[AssetFile] = []
+        self.organization_plan: list[PlannedMove] = []
 
         self.recursive_scan_var = ctk.BooleanVar(
             value=True,
@@ -133,7 +139,7 @@ class AniccoliApp(ctk.CTk):
         )
 
     def _create_folder_controls(self) -> None:
-        """Create the folder-selection and scanning controls."""
+        """Create folder-selection and scanning controls."""
         folder_card = ctk.CTkFrame(
             master=self.main_container,
             corner_radius=15,
@@ -162,7 +168,7 @@ class AniccoliApp(ctk.CTk):
         heading_label.grid(
             row=0,
             column=0,
-            columnspan=3,
+            columnspan=4,
             sticky="w",
             padx=25,
             pady=(20, 5),
@@ -174,12 +180,12 @@ class AniccoliApp(ctk.CTk):
             font=ctk.CTkFont(size=13),
             anchor="w",
             justify="left",
-            wraplength=700,
+            wraplength=850,
         )
         self.selected_folder_label.grid(
             row=1,
             column=0,
-            columnspan=3,
+            columnspan=4,
             sticky="ew",
             padx=25,
             pady=(0, 15),
@@ -189,7 +195,7 @@ class AniccoliApp(ctk.CTk):
             master=folder_card,
             text="Choose Project Folder",
             command=self._select_folder,
-            width=190,
+            width=185,
             height=40,
             font=ctk.CTkFont(
                 size=14,
@@ -224,7 +230,7 @@ class AniccoliApp(ctk.CTk):
             master=folder_card,
             text="Scan Folder",
             command=self._scan_selected_folder,
-            width=150,
+            width=135,
             height=40,
             state="disabled",
             font=ctk.CTkFont(
@@ -235,6 +241,25 @@ class AniccoliApp(ctk.CTk):
         self.scan_button.grid(
             row=2,
             column=2,
+            padx=10,
+            pady=(0, 20),
+        )
+
+        self.preview_button = ctk.CTkButton(
+            master=folder_card,
+            text="Preview Organization",
+            command=self._preview_organization,
+            width=180,
+            height=40,
+            state="disabled",
+            font=ctk.CTkFont(
+                size=14,
+                weight="bold",
+            ),
+        )
+        self.preview_button.grid(
+            row=2,
+            column=3,
             sticky="e",
             padx=(10, 25),
             pady=(0, 20),
@@ -249,7 +274,7 @@ class AniccoliApp(ctk.CTk):
         self.status_label.grid(
             row=3,
             column=0,
-            columnspan=3,
+            columnspan=4,
             sticky="ew",
             padx=25,
             pady=(0, 20),
@@ -274,29 +299,28 @@ class AniccoliApp(ctk.CTk):
             uniform="summary",
         )
 
-        files_card = self._create_summary_card(
+        self.files_count_label = self._create_summary_card(
             parent=summary_frame,
             column=0,
             heading="Files found",
             starting_value="0",
         )
-        self.files_count_label = files_card
 
-        size_card = self._create_summary_card(
+        self.total_size_label = self._create_summary_card(
             parent=summary_frame,
             column=1,
             heading="Combined size",
             starting_value="0 B",
         )
-        self.total_size_label = size_card
 
-        categories_card = self._create_summary_card(
-            parent=summary_frame,
-            column=2,
-            heading="Categories",
-            starting_value="0",
+        self.categories_count_label = (
+            self._create_summary_card(
+                parent=summary_frame,
+                column=2,
+                heading="Categories",
+                starting_value="0",
+            )
         )
-        self.categories_count_label = categories_card
 
     def _create_summary_card(
         self,
@@ -305,7 +329,7 @@ class AniccoliApp(ctk.CTk):
         heading: str,
         starting_value: str,
     ) -> ctk.CTkLabel:
-        """Create one reusable summary card and return its value label."""
+        """Create one summary card and return its value label."""
         card = ctk.CTkFrame(
             master=parent,
             corner_radius=12,
@@ -383,11 +407,11 @@ class AniccoliApp(ctk.CTk):
             pady=(18, 12),
         )
 
-        self.results_header = ctk.CTkFrame(
+        results_header = ctk.CTkFrame(
             master=results_card,
             corner_radius=8,
         )
-        self.results_header.grid(
+        results_header.grid(
             row=1,
             column=0,
             sticky="ew",
@@ -395,40 +419,40 @@ class AniccoliApp(ctk.CTk):
             pady=(0, 5),
         )
 
-        self.results_header.grid_columnconfigure(
+        results_header.grid_columnconfigure(
             0,
             weight=3,
         )
-        self.results_header.grid_columnconfigure(
+        results_header.grid_columnconfigure(
             1,
             weight=2,
         )
-        self.results_header.grid_columnconfigure(
+        results_header.grid_columnconfigure(
             2,
             weight=1,
         )
-        self.results_header.grid_columnconfigure(
+        results_header.grid_columnconfigure(
             3,
             weight=2,
         )
 
         self._create_column_heading(
-            parent=self.results_header,
+            parent=results_header,
             text="File",
             column=0,
         )
         self._create_column_heading(
-            parent=self.results_header,
+            parent=results_header,
             text="Category",
             column=1,
         )
         self._create_column_heading(
-            parent=self.results_header,
+            parent=results_header,
             text="Size",
             column=2,
         )
         self._create_column_heading(
-            parent=self.results_header,
+            parent=results_header,
             text="Planned folder",
             column=3,
         )
@@ -450,20 +474,9 @@ class AniccoliApp(ctk.CTk):
             weight=1,
         )
 
-        self.empty_results_label = ctk.CTkLabel(
-            master=self.results_scroll_frame,
-            text=(
-                "No scan results yet.\n"
-                "Select a project folder and click Scan Folder."
-            ),
-            font=ctk.CTkFont(size=14),
-            justify="center",
-        )
-        self.empty_results_label.grid(
-            row=0,
-            column=0,
-            padx=20,
-            pady=60,
+        self._show_empty_results_message(
+            "No scan results yet.\n"
+            "Select a project folder and click Scan Folder."
         )
 
     def _create_column_heading(
@@ -534,6 +547,9 @@ class AniccoliApp(ctk.CTk):
             state="disabled",
             text="Scanning...",
         )
+        self.preview_button.configure(
+            state="disabled",
+        )
 
         self.status_label.configure(
             text="Scanning the selected folder...",
@@ -554,6 +570,7 @@ class AniccoliApp(ctk.CTk):
             OSError,
         ) as error:
             self.scanned_assets = []
+            self.organization_plan = []
 
             self.status_label.configure(
                 text=f"Scan failed: {error}",
@@ -561,6 +578,7 @@ class AniccoliApp(ctk.CTk):
 
             self._display_assets()
         else:
+            self.organization_plan = []
             self._display_assets()
 
             file_count = len(
@@ -574,6 +592,11 @@ class AniccoliApp(ctk.CTk):
                     f"{'' if file_count == 1 else 's'} found."
                 ),
             )
+
+            if self.scanned_assets:
+                self.preview_button.configure(
+                    state="normal",
+                )
         finally:
             self.scan_button.configure(
                 state="normal",
@@ -581,8 +604,9 @@ class AniccoliApp(ctk.CTk):
             )
 
     def _reset_scan_results(self) -> None:
-        """Clear results when the user chooses another folder."""
+        """Clear results when another folder is selected."""
         self.scanned_assets = []
+        self.organization_plan = []
 
         self.files_count_label.configure(
             text="0",
@@ -594,32 +618,23 @@ class AniccoliApp(ctk.CTk):
             text="0",
         )
 
-        self._clear_result_rows()
-
-        self.empty_results_label = ctk.CTkLabel(
-            master=self.results_scroll_frame,
-            text=(
-                "Folder selected.\n"
-                "Click Scan Folder to inspect its assets."
-            ),
-            font=ctk.CTkFont(size=14),
-            justify="center",
+        self.preview_button.configure(
+            state="disabled",
         )
-        self.empty_results_label.grid(
-            row=0,
-            column=0,
-            padx=20,
-            pady=60,
+
+        self._clear_result_rows()
+        self._show_empty_results_message(
+            "Folder selected.\n"
+            "Click Scan Folder to inspect its assets."
         )
 
     def _display_assets(self) -> None:
-        """Update the summary and results table."""
+        """Update the summary cards and results table."""
         self._clear_result_rows()
 
         total_size = calculate_total_size(
             self.scanned_assets
         )
-
         category_summary = summarize_assets(
             self.scanned_assets
         )
@@ -627,26 +642,16 @@ class AniccoliApp(ctk.CTk):
         self.files_count_label.configure(
             text=str(len(self.scanned_assets)),
         )
-
         self.total_size_label.configure(
             text=format_file_size(total_size),
         )
-
         self.categories_count_label.configure(
             text=str(len(category_summary)),
         )
 
         if not self.scanned_assets:
-            empty_label = ctk.CTkLabel(
-                master=self.results_scroll_frame,
-                text="No supported or visible files were found.",
-                font=ctk.CTkFont(size=14),
-            )
-            empty_label.grid(
-                row=0,
-                column=0,
-                padx=20,
-                pady=60,
+            self._show_empty_results_message(
+                "No supported or visible files were found."
             )
             return
 
@@ -658,8 +663,26 @@ class AniccoliApp(ctk.CTk):
                 row_number=row_number,
             )
 
+    def _show_empty_results_message(
+        self,
+        message: str,
+    ) -> None:
+        """Display a message in the results area."""
+        empty_label = ctk.CTkLabel(
+            master=self.results_scroll_frame,
+            text=message,
+            font=ctk.CTkFont(size=14),
+            justify="center",
+        )
+        empty_label.grid(
+            row=0,
+            column=0,
+            padx=20,
+            pady=60,
+        )
+
     def _clear_result_rows(self) -> None:
-        """Remove every existing widget from the results area."""
+        """Remove every widget from the results area."""
         for child_widget in (
             self.results_scroll_frame.winfo_children()
         ):
@@ -699,62 +722,296 @@ class AniccoliApp(ctk.CTk):
             weight=2,
         )
 
-        file_label = ctk.CTkLabel(
+        values = (
+            str(asset.relative_path),
+            str(asset.category),
+            asset.size_text,
+            str(asset.destination),
+        )
+
+        for column, value in enumerate(values):
+            value_label = ctk.CTkLabel(
+                master=row_frame,
+                text=value,
+                font=ctk.CTkFont(size=12),
+                anchor="w",
+                justify="left",
+            )
+            value_label.grid(
+                row=0,
+                column=column,
+                sticky="ew",
+                padx=12,
+                pady=10,
+            )
+
+    def _preview_organization(self) -> None:
+        """Build and display the safe organization preview."""
+        if (
+            self.selected_folder is None
+            or not self.scanned_assets
+        ):
+            self.status_label.configure(
+                text="Scan a folder before creating a preview.",
+            )
+            return
+
+        try:
+            self.organization_plan = build_organization_plan(
+                project_folder=self.selected_folder,
+                assets=self.scanned_assets,
+            )
+        except (
+            FileNotFoundError,
+            NotADirectoryError,
+            OSError,
+        ) as error:
+            self.status_label.configure(
+                text=f"Preview failed: {error}",
+            )
+            return
+
+        if not self.organization_plan:
+            self.status_label.configure(
+                text=(
+                    "All scanned assets are already "
+                    "in their planned folders."
+                ),
+            )
+        else:
+            self.status_label.configure(
+                text=(
+                    f"Preview created for "
+                    f"{len(self.organization_plan)} files."
+                ),
+            )
+
+        self._open_preview_window()
+
+    def _open_preview_window(self) -> None:
+        """Open a window containing the organization plan."""
+        if self.selected_folder is None:
+            return
+
+        preview_window = ctk.CTkToplevel(
+            self,
+        )
+        preview_window.title(
+            "Aniccoli Organization Preview"
+        )
+        preview_window.geometry(
+            "1050x650"
+        )
+        preview_window.minsize(
+            850,
+            500,
+        )
+
+        preview_window.transient(
+            self
+        )
+        preview_window.grab_set()
+
+        preview_window.grid_rowconfigure(
+            2,
+            weight=1,
+        )
+        preview_window.grid_columnconfigure(
+            0,
+            weight=1,
+        )
+
+        title_label = ctk.CTkLabel(
+            master=preview_window,
+            text="Organization Preview",
+            font=ctk.CTkFont(
+                size=28,
+                weight="bold",
+            ),
+        )
+        title_label.grid(
+            row=0,
+            column=0,
+            sticky="w",
+            padx=25,
+            pady=(25, 5),
+        )
+
+        conflict_count = count_conflict_renames(
+            self.organization_plan
+        )
+
+        summary_label = ctk.CTkLabel(
+            master=preview_window,
+            text=(
+                f"{len(self.organization_plan)} files will move. "
+                f"{conflict_count} filename conflict"
+                f"{'' if conflict_count == 1 else 's'} "
+                f"will be safely renamed."
+            ),
+            font=ctk.CTkFont(size=14),
+            anchor="w",
+        )
+        summary_label.grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=25,
+            pady=(0, 15),
+        )
+
+        preview_scroll = ctk.CTkScrollableFrame(
+            master=preview_window,
+            corner_radius=12,
+        )
+        preview_scroll.grid(
+            row=2,
+            column=0,
+            sticky="nsew",
+            padx=25,
+            pady=(0, 15),
+        )
+        preview_scroll.grid_columnconfigure(
+            0,
+            weight=1,
+        )
+
+        if not self.organization_plan:
+            empty_label = ctk.CTkLabel(
+                master=preview_scroll,
+                text=(
+                    "Nothing needs to be moved.\n"
+                    "The scanned assets are already organized."
+                ),
+                font=ctk.CTkFont(size=15),
+                justify="center",
+            )
+            empty_label.grid(
+                row=0,
+                column=0,
+                padx=20,
+                pady=70,
+            )
+        else:
+            for row_number, planned_move in enumerate(
+                self.organization_plan
+            ):
+                self._create_preview_row(
+                    parent=preview_scroll,
+                    planned_move=planned_move,
+                    row_number=row_number,
+                )
+
+        close_button = ctk.CTkButton(
+            master=preview_window,
+            text="Close Preview",
+            command=preview_window.destroy,
+            width=150,
+            height=40,
+        )
+        close_button.grid(
+            row=3,
+            column=0,
+            sticky="e",
+            padx=25,
+            pady=(0, 25),
+        )
+
+    def _create_preview_row(
+        self,
+        parent: ctk.CTkScrollableFrame,
+        planned_move: PlannedMove,
+        row_number: int,
+    ) -> None:
+        """Create one source-to-destination preview row."""
+        if self.selected_folder is None:
+            return
+
+        row_frame = ctk.CTkFrame(
+            master=parent,
+            corner_radius=9,
+        )
+        row_frame.grid(
+            row=row_number,
+            column=0,
+            sticky="ew",
+            pady=(0, 8),
+        )
+
+        row_frame.grid_columnconfigure(
+            0,
+            weight=3,
+        )
+        row_frame.grid_columnconfigure(
+            1,
+            weight=4,
+        )
+        row_frame.grid_columnconfigure(
+            2,
+            weight=1,
+        )
+
+        source_label = ctk.CTkLabel(
             master=row_frame,
-            text=str(asset.relative_path),
+            text=(
+                "From\n"
+                f"{planned_move.asset.relative_path}"
+            ),
             font=ctk.CTkFont(size=12),
             anchor="w",
             justify="left",
         )
-        file_label.grid(
+        source_label.grid(
             row=0,
             column=0,
             sticky="ew",
-            padx=12,
-            pady=10,
+            padx=14,
+            pady=12,
         )
 
-        category_label = ctk.CTkLabel(
-            master=row_frame,
-            text=str(asset.category),
-            font=ctk.CTkFont(size=12),
-            anchor="w",
-        )
-        category_label.grid(
-            row=0,
-            column=1,
-            sticky="ew",
-            padx=12,
-            pady=10,
-        )
-
-        size_label = ctk.CTkLabel(
-            master=row_frame,
-            text=asset.size_text,
-            font=ctk.CTkFont(size=12),
-            anchor="w",
-        )
-        size_label.grid(
-            row=0,
-            column=2,
-            sticky="ew",
-            padx=12,
-            pady=10,
+        destination_relative = (
+            planned_move.destination_path.relative_to(
+                self.selected_folder
+            )
         )
 
         destination_label = ctk.CTkLabel(
             master=row_frame,
-            text=str(asset.destination),
+            text=(
+                "To\n"
+                f"{destination_relative}"
+            ),
             font=ctk.CTkFont(size=12),
             anchor="w",
             justify="left",
         )
         destination_label.grid(
             row=0,
-            column=3,
+            column=1,
             sticky="ew",
-            padx=12,
-            pady=10,
+            padx=14,
+            pady=12,
+        )
+
+        conflict_text = (
+            "Renamed"
+            if planned_move.renamed_for_conflict
+            else "Ready"
+        )
+
+        conflict_label = ctk.CTkLabel(
+            master=row_frame,
+            text=conflict_text,
+            font=ctk.CTkFont(
+                size=12,
+                weight="bold",
+            ),
+        )
+        conflict_label.grid(
+            row=0,
+            column=2,
+            padx=14,
+            pady=12,
         )
 
 
