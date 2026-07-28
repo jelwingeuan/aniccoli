@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from typing import Optional
 
 import customtkinter as ctk
@@ -12,6 +12,7 @@ from aniccoli.organizer import (
     PlannedMove,
     build_organization_plan,
     count_conflict_renames,
+    execute_organization_plan,
 )
 from aniccoli.scanner import (
     AssetFile,
@@ -765,6 +766,7 @@ class AniccoliApp(ctk.CTk):
             FileNotFoundError,
             NotADirectoryError,
             OSError,
+            ValueError,
         ) as error:
             self.status_label.configure(
                 text=f"Preview failed: {error}",
@@ -902,19 +904,57 @@ class AniccoliApp(ctk.CTk):
                     row_number=row_number,
                 )
 
-        close_button = ctk.CTkButton(
+        action_frame = ctk.CTkFrame(
             master=preview_window,
+            fg_color="transparent",
+        )
+        action_frame.grid(
+            row=3,
+            column=0,
+            sticky="ew",
+            padx=25,
+            pady=(0, 25),
+        )
+
+        action_frame.grid_columnconfigure(
+            0,
+            weight=1,
+        )
+
+        close_button = ctk.CTkButton(
+            master=action_frame,
             text="Close Preview",
             command=preview_window.destroy,
-            width=150,
+            width=145,
             height=40,
         )
         close_button.grid(
-            row=3,
-            column=0,
-            sticky="e",
-            padx=25,
-            pady=(0, 25),
+            row=0,
+            column=1,
+            padx=(0, 10),
+        )
+
+        organize_button = ctk.CTkButton(
+            master=action_frame,
+            text="Organize Files",
+            command=lambda: self._confirm_and_organize(
+                preview_window
+            ),
+            width=155,
+            height=40,
+            state=(
+                "normal"
+                if self.organization_plan
+                else "disabled"
+            ),
+            font=ctk.CTkFont(
+                size=14,
+                weight="bold",
+            ),
+        )
+        organize_button.grid(
+            row=0,
+            column=2,
         )
 
     def _create_preview_row(
@@ -1013,6 +1053,136 @@ class AniccoliApp(ctk.CTk):
             padx=14,
             pady=12,
         )
+
+    def _confirm_and_organize(
+        self,
+        preview_window: ctk.CTkToplevel,
+    ) -> None:
+        """Ask for confirmation and execute the reviewed plan."""
+        if (
+            self.selected_folder is None
+            or not self.organization_plan
+        ):
+            return
+
+        file_count = len(
+            self.organization_plan
+        )
+
+        confirmed = messagebox.askyesno(
+            title="Confirm File Organization",
+            message=(
+                f"Aniccoli will move {file_count} file"
+                f"{'' if file_count == 1 else 's'}.\n\n"
+                "Existing files will not be overwritten.\n"
+                "Do you want to continue?"
+            ),
+            parent=preview_window,
+        )
+
+        if not confirmed:
+            return
+
+        self.status_label.configure(
+            text="Organizing files...",
+        )
+        self.update_idletasks()
+
+        try:
+            result = execute_organization_plan(
+                project_folder=self.selected_folder,
+                planned_moves=self.organization_plan,
+            )
+        except (
+            FileNotFoundError,
+            NotADirectoryError,
+            PermissionError,
+            OSError,
+            ValueError,
+        ) as error:
+            messagebox.showerror(
+                title="Organization Failed",
+                message=str(error),
+                parent=preview_window,
+            )
+
+            self.status_label.configure(
+                text=f"Organization failed: {error}",
+            )
+            return
+
+        if result.failed_count == 0:
+            messagebox.showinfo(
+                title="Organization Complete",
+                message=(
+                    f"{result.moved_count} file"
+                    f"{'' if result.moved_count == 1 else 's'} "
+                    "were organized successfully."
+                ),
+                parent=preview_window,
+            )
+        else:
+            failure_lines = [
+                (
+                    f"• "
+                    f"{failure.planned_move.asset.relative_path}: "
+                    f"{failure.error_message}"
+                )
+                for failure in result.failed_files[:5]
+            ]
+
+            additional_failures = (
+                result.failed_count
+                - len(failure_lines)
+            )
+
+            failure_message = "\n".join(
+                failure_lines
+            )
+
+            if additional_failures > 0:
+                failure_message += (
+                    f"\n• And {additional_failures} more failure"
+                    f"{'' if additional_failures == 1 else 's'}."
+                )
+
+            messagebox.showwarning(
+                title="Organization Partially Complete",
+                message=(
+                    f"Moved successfully: {result.moved_count}\n"
+                    f"Failed: {result.failed_count}\n\n"
+                    f"{failure_message}"
+                ),
+                parent=preview_window,
+            )
+
+        preview_window.destroy()
+
+        moved_count = result.moved_count
+        failed_count = result.failed_count
+
+        self.organization_plan = []
+
+        self._scan_selected_folder()
+
+        if failed_count == 0:
+            self.status_label.configure(
+                text=(
+                    f"Organization complete. "
+                    f"{moved_count} file"
+                    f"{'' if moved_count == 1 else 's'} moved."
+                ),
+            )
+        else:
+            self.status_label.configure(
+                text=(
+                    f"Organization finished with "
+                    f"{moved_count} successful movement"
+                    f"{'' if moved_count == 1 else 's'} "
+                    f"and {failed_count} failure"
+                    f"{'' if failed_count == 1 else 's'}."
+                ),
+            )
 
 
 def create_app() -> AniccoliApp:

@@ -1,7 +1,8 @@
-"""Organization-planning tools for Aniccoli."""
+"""Organization-planning and file-moving tools for Aniccoli."""
 
 from __future__ import annotations
 
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -26,6 +27,50 @@ class PlannedMove:
     def planned_file_name(self) -> str:
         """Return the filename that will be used after organization."""
         return self.destination_path.name
+
+
+@dataclass(frozen=True)
+class MoveFailure:
+    """Store information about a file that could not be moved."""
+
+    planned_move: PlannedMove
+    error_message: str
+
+
+@dataclass(frozen=True)
+class OrganizationResult:
+    """Store the result of an organization operation."""
+
+    moved_files: tuple[PlannedMove, ...]
+    failed_files: tuple[MoveFailure, ...]
+
+    @property
+    def moved_count(self) -> int:
+        """Return the number of files moved successfully."""
+        return len(self.moved_files)
+
+    @property
+    def failed_count(self) -> int:
+        """Return the number of files that failed to move."""
+        return len(self.failed_files)
+
+    @property
+    def was_successful(self) -> bool:
+        """Return True when every planned movement succeeded."""
+        return self.failed_count == 0
+
+
+def _is_inside_folder(
+    path: Path,
+    root_folder: Path,
+) -> bool:
+    """Return True when a path is located inside the project folder."""
+    try:
+        path.relative_to(root_folder)
+    except ValueError:
+        return False
+
+    return True
 
 
 def _next_available_path(
@@ -77,8 +122,8 @@ def build_organization_plan(
     """
     Create a safe organization plan without moving any files.
 
-    Files that are already located in their correct destination are
-    skipped. Filename conflicts are resolved by creating a new name.
+    Files already located in their correct destination are skipped.
+    Filename conflicts are resolved by creating a new filename.
     """
     root_folder = Path(
         project_folder
@@ -107,6 +152,14 @@ def build_organization_plan(
         desired_path = (
             destination_directory / asset.file_name
         ).resolve()
+
+        if not _is_inside_folder(
+            destination_directory,
+            root_folder,
+        ):
+            raise ValueError(
+                "A planned destination is outside the project folder."
+            )
 
         if source_path == desired_path:
             continue
@@ -139,9 +192,128 @@ def build_organization_plan(
 def count_conflict_renames(
     planned_moves: Iterable[PlannedMove],
 ) -> int:
-    """Count how many planned files require a conflict-safe rename."""
+    """Count how many planned files require a safe rename."""
     return sum(
         1
         for planned_move in planned_moves
         if planned_move.renamed_for_conflict
+    )
+
+
+def _validate_move(
+    planned_move: PlannedMove,
+    root_folder: Path,
+) -> tuple[Path, Path]:
+    """Validate one movement before changing the filesystem."""
+    source_path = planned_move.source_path.expanduser().resolve()
+    destination_path = (
+        planned_move.destination_path.expanduser().resolve()
+    )
+
+    if not source_path.exists():
+        raise FileNotFoundError(
+            f"The source file no longer exists: {source_path}"
+        )
+
+    if not source_path.is_file():
+        raise ValueError(
+            f"The source path is not a file: {source_path}"
+        )
+
+    if not _is_inside_folder(
+        source_path,
+        root_folder,
+    ):
+        raise ValueError(
+            f"The source is outside the project folder: {source_path}"
+        )
+
+    if not _is_inside_folder(
+        destination_path,
+        root_folder,
+    ):
+        raise ValueError(
+            "The destination is outside the project folder: "
+            f"{destination_path}"
+        )
+
+    if source_path == destination_path:
+        raise ValueError(
+            "The source and destination paths are identical."
+        )
+
+    if destination_path.exists():
+        raise FileExistsError(
+            "The destination already exists: "
+            f"{destination_path}"
+        )
+
+    return source_path, destination_path
+
+
+def execute_organization_plan(
+    project_folder: str | Path,
+    planned_moves: Iterable[PlannedMove],
+) -> OrganizationResult:
+    """
+    Execute a previously reviewed organization plan.
+
+    Destination folders are created automatically. Existing destination
+    files are never overwritten. Failures are recorded so that one bad
+    file does not crash the entire operation.
+    """
+    root_folder = Path(
+        project_folder
+    ).expanduser().resolve()
+
+    if not root_folder.exists():
+        raise FileNotFoundError(
+            f"The project folder does not exist: {root_folder}"
+        )
+
+    if not root_folder.is_dir():
+        raise NotADirectoryError(
+            f"The project path is not a folder: {root_folder}"
+        )
+
+    moved_files: list[PlannedMove] = []
+    failed_files: list[MoveFailure] = []
+
+    for planned_move in planned_moves:
+        try:
+            source_path, destination_path = _validate_move(
+                planned_move=planned_move,
+                root_folder=root_folder,
+            )
+
+            destination_path.parent.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
+            shutil.move(
+                str(source_path),
+                str(destination_path),
+            )
+        except (
+            FileNotFoundError,
+            FileExistsError,
+            PermissionError,
+            OSError,
+            ValueError,
+        ) as error:
+            failed_files.append(
+                MoveFailure(
+                    planned_move=planned_move,
+                    error_message=str(error),
+                )
+            )
+        else:
+            moved_files.append(
+                planned_move
+            )
+
+    return OrganizationResult(
+        moved_files=tuple(moved_files),
+        failed_files=tuple(failed_files),
     )
