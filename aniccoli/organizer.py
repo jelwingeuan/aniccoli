@@ -1,13 +1,19 @@
-"""Organization-planning and file-moving tools for Aniccoli."""
+"""Organization-planning, file-moving, and logging tools for Aniccoli."""
 
 from __future__ import annotations
 
+import json
 import shutil
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Iterable
 
 from aniccoli.scanner import AssetFile
+
+
+HISTORY_DIRECTORY = Path(".aniccoli") / "history"
+LOG_SCHEMA_VERSION = 1
 
 
 @dataclass(frozen=True)
@@ -43,6 +49,8 @@ class OrganizationResult:
 
     moved_files: tuple[PlannedMove, ...]
     failed_files: tuple[MoveFailure, ...]
+    log_path: Path | None = None
+    log_error: str | None = None
 
     @property
     def moved_count(self) -> int:
@@ -58,6 +66,11 @@ class OrganizationResult:
     def was_successful(self) -> bool:
         """Return True when every planned movement succeeded."""
         return self.failed_count == 0
+
+    @property
+    def log_was_saved(self) -> bool:
+        """Return True when the activity log was saved successfully."""
+        return self.log_path is not None and self.log_error is None
 
 
 def _is_inside_folder(
@@ -206,8 +219,11 @@ def _validate_move(
 ) -> tuple[Path, Path]:
     """Validate one movement before changing the filesystem."""
     source_path = planned_move.source_path.expanduser().resolve()
+
     destination_path = (
-        planned_move.destination_path.expanduser().resolve()
+        planned_move.destination_path
+        .expanduser()
+        .resolve()
     )
 
     if not source_path.exists():
@@ -251,6 +267,144 @@ def _validate_move(
     return source_path, destination_path
 
 
+def _relative_path_text(
+    path: Path,
+    root_folder: Path,
+) -> str:
+    """Return a path relative to the project when possible."""
+    try:
+        return str(
+            path.resolve().relative_to(root_folder)
+        )
+    except ValueError:
+        return str(path.resolve())
+
+
+def _create_log_path(
+    root_folder: Path,
+) -> Path:
+    """Create and return a unique activity-log path."""
+    history_folder = (
+        root_folder / HISTORY_DIRECTORY
+    )
+
+    history_folder.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    timestamp = datetime.now().strftime(
+        "%Y%m%d_%H%M%S_%f"
+    )
+
+    return (
+        history_folder
+        / f"organization_{timestamp}.json"
+    )
+
+
+def _build_log_data(
+    root_folder: Path,
+    planned_moves: tuple[PlannedMove, ...],
+    moved_files: tuple[PlannedMove, ...],
+    failed_files: tuple[MoveFailure, ...],
+) -> dict[str, object]:
+    """Build the JSON-compatible activity-log information."""
+    moved_set = set(moved_files)
+
+    failure_messages = {
+        failure.planned_move: failure.error_message
+        for failure in failed_files
+    }
+
+    movement_records: list[dict[str, object]] = []
+
+    for planned_move in planned_moves:
+        if planned_move in moved_set:
+            status = "moved"
+            error_message = None
+        elif planned_move in failure_messages:
+            status = "failed"
+            error_message = failure_messages[
+                planned_move
+            ]
+        else:
+            status = "not_processed"
+            error_message = None
+
+        movement_records.append(
+            {
+                "source": _relative_path_text(
+                    planned_move.source_path,
+                    root_folder,
+                ),
+                "destination": _relative_path_text(
+                    planned_move.destination_path,
+                    root_folder,
+                ),
+                "category": str(
+                    planned_move.asset.category
+                ),
+                "renamed_for_conflict": (
+                    planned_move.renamed_for_conflict
+                ),
+                "status": status,
+                "error": error_message,
+            }
+        )
+
+    return {
+        "schema_version": LOG_SCHEMA_VERSION,
+        "application": "Aniccoli",
+        "created_at": (
+            datetime.now()
+            .astimezone()
+            .isoformat()
+        ),
+        "project_folder": str(root_folder),
+        "summary": {
+            "planned": len(planned_moves),
+            "moved": len(moved_files),
+            "failed": len(failed_files),
+        },
+        "movements": movement_records,
+    }
+
+
+def _save_organization_log(
+    root_folder: Path,
+    planned_moves: tuple[PlannedMove, ...],
+    moved_files: tuple[PlannedMove, ...],
+    failed_files: tuple[MoveFailure, ...],
+) -> Path:
+    """Save one organization operation as a JSON activity log."""
+    log_path = _create_log_path(
+        root_folder
+    )
+
+    log_data = _build_log_data(
+        root_folder=root_folder,
+        planned_moves=planned_moves,
+        moved_files=moved_files,
+        failed_files=failed_files,
+    )
+
+    with log_path.open(
+        mode="w",
+        encoding="utf-8",
+    ) as log_file:
+        json.dump(
+            log_data,
+            log_file,
+            indent=2,
+            ensure_ascii=False,
+        )
+
+        log_file.write("\n")
+
+    return log_path
+
+
 def execute_organization_plan(
     project_folder: str | Path,
     planned_moves: Iterable[PlannedMove],
@@ -259,8 +413,8 @@ def execute_organization_plan(
     Execute a previously reviewed organization plan.
 
     Destination folders are created automatically. Existing destination
-    files are never overwritten. Failures are recorded so that one bad
-    file does not crash the entire operation.
+    files are never overwritten. Every operation is recorded in a JSON
+    activity log inside the selected project folder.
     """
     root_folder = Path(
         project_folder
@@ -276,10 +430,12 @@ def execute_organization_plan(
             f"The project path is not a folder: {root_folder}"
         )
 
+    plan = tuple(planned_moves)
+
     moved_files: list[PlannedMove] = []
     failed_files: list[MoveFailure] = []
 
-    for planned_move in planned_moves:
+    for planned_move in plan:
         try:
             source_path, destination_path = _validate_move(
                 planned_move=planned_move,
@@ -313,7 +469,35 @@ def execute_organization_plan(
                 planned_move
             )
 
+    moved_files_tuple = tuple(
+        moved_files
+    )
+
+    failed_files_tuple = tuple(
+        failed_files
+    )
+
+    log_path: Path | None = None
+    log_error: str | None = None
+
+    try:
+        log_path = _save_organization_log(
+            root_folder=root_folder,
+            planned_moves=plan,
+            moved_files=moved_files_tuple,
+            failed_files=failed_files_tuple,
+        )
+    except (
+        PermissionError,
+        OSError,
+        TypeError,
+        ValueError,
+    ) as error:
+        log_error = str(error)
+
     return OrganizationResult(
-        moved_files=tuple(moved_files),
-        failed_files=tuple(failed_files),
+        moved_files=moved_files_tuple,
+        failed_files=failed_files_tuple,
+        log_path=log_path,
+        log_error=log_error,
     )
