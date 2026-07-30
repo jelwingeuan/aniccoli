@@ -9,6 +9,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterable
 
+from aniccoli.organization_options import (
+    OrganizationOptions,
+    build_destination_folder,
+)
 from aniccoli.scanner import AssetFile
 
 
@@ -70,7 +74,10 @@ class OrganizationResult:
     @property
     def log_was_saved(self) -> bool:
         """Return True when the activity log was saved successfully."""
-        return self.log_path is not None and self.log_error is None
+        return (
+            self.log_path is not None
+            and self.log_error is None
+        )
 
 
 def _is_inside_folder(
@@ -131,12 +138,17 @@ def _next_available_path(
 def build_organization_plan(
     project_folder: str | Path,
     assets: Iterable[AssetFile],
+    *,
+    options: OrganizationOptions | None = None,
 ) -> list[PlannedMove]:
     """
     Create a safe organization plan without moving any files.
 
     Files already located in their correct destination are skipped.
     Filename conflicts are resolved by creating a new filename.
+
+    When no organization options are provided, Aniccoli keeps its
+    existing category-only folder structure.
     """
     root_folder = Path(
         project_folder
@@ -152,18 +164,31 @@ def build_organization_plan(
             f"The project path is not a folder: {root_folder}"
         )
 
+    active_options = (
+        options
+        if options is not None
+        else OrganizationOptions()
+    )
+
     planned_moves: list[PlannedMove] = []
     reserved_paths: set[Path] = set()
 
     for asset in assets:
         source_path = asset.source_path.resolve()
 
+        relative_destination = build_destination_folder(
+            asset=asset,
+            options=active_options,
+        )
+
         destination_directory = (
-            root_folder / asset.destination
+            root_folder
+            / relative_destination
         ).resolve()
 
         desired_path = (
-            destination_directory / asset.file_name
+            destination_directory
+            / asset.file_name
         ).resolve()
 
         if not _is_inside_folder(
@@ -184,7 +209,9 @@ def build_organization_plan(
             )
         )
 
-        reserved_paths.add(available_path)
+        reserved_paths.add(
+            available_path
+        )
 
         planned_moves.append(
             PlannedMove(
@@ -218,7 +245,11 @@ def _validate_move(
     root_folder: Path,
 ) -> tuple[Path, Path]:
     """Validate one movement before changing the filesystem."""
-    source_path = planned_move.source_path.expanduser().resolve()
+    source_path = (
+        planned_move.source_path
+        .expanduser()
+        .resolve()
+    )
 
     destination_path = (
         planned_move.destination_path
@@ -274,10 +305,14 @@ def _relative_path_text(
     """Return a path relative to the project when possible."""
     try:
         return str(
-            path.resolve().relative_to(root_folder)
+            path.resolve().relative_to(
+                root_folder
+            )
         )
     except ValueError:
-        return str(path.resolve())
+        return str(
+            path.resolve()
+        )
 
 
 def _create_log_path(
@@ -285,7 +320,8 @@ def _create_log_path(
 ) -> Path:
     """Create and return a unique activity-log path."""
     history_folder = (
-        root_folder / HISTORY_DIRECTORY
+        root_folder
+        / HISTORY_DIRECTORY
     )
 
     history_folder.mkdir(
@@ -309,15 +345,19 @@ def _build_log_data(
     moved_files: tuple[PlannedMove, ...],
     failed_files: tuple[MoveFailure, ...],
 ) -> dict[str, object]:
-    """Build the JSON-compatible activity-log information."""
-    moved_set = set(moved_files)
+    """Build JSON-compatible activity-log information."""
+    moved_set = set(
+        moved_files
+    )
 
     failure_messages = {
         failure.planned_move: failure.error_message
         for failure in failed_files
     }
 
-    movement_records: list[dict[str, object]] = []
+    movement_records: list[
+        dict[str, object]
+    ] = []
 
     for planned_move in planned_moves:
         if planned_move in moved_set:
@@ -361,11 +401,19 @@ def _build_log_data(
             .astimezone()
             .isoformat()
         ),
-        "project_folder": str(root_folder),
+        "project_folder": str(
+            root_folder
+        ),
         "summary": {
-            "planned": len(planned_moves),
-            "moved": len(moved_files),
-            "failed": len(failed_files),
+            "planned": len(
+                planned_moves
+            ),
+            "moved": len(
+                moved_files
+            ),
+            "failed": len(
+                failed_files
+            ),
         },
         "movements": movement_records,
     }
@@ -400,7 +448,9 @@ def _save_organization_log(
             ensure_ascii=False,
         )
 
-        log_file.write("\n")
+        log_file.write(
+            "\n"
+        )
 
     return log_path
 
@@ -430,10 +480,17 @@ def execute_organization_plan(
             f"The project path is not a folder: {root_folder}"
         )
 
-    plan = tuple(planned_moves)
+    plan = tuple(
+        planned_moves
+    )
 
-    moved_files: list[PlannedMove] = []
-    failed_files: list[MoveFailure] = []
+    moved_files: list[
+        PlannedMove
+    ] = []
+
+    failed_files: list[
+        MoveFailure
+    ] = []
 
     for planned_move in plan:
         try:
@@ -461,7 +518,9 @@ def execute_organization_plan(
             failed_files.append(
                 MoveFailure(
                     planned_move=planned_move,
-                    error_message=str(error),
+                    error_message=str(
+                        error
+                    ),
                 )
             )
         else:
@@ -493,7 +552,9 @@ def execute_organization_plan(
         TypeError,
         ValueError,
     ) as error:
-        log_error = str(error)
+        log_error = str(
+            error
+        )
 
     return OrganizationResult(
         moved_files=moved_files_tuple,
