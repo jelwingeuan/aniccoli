@@ -8,6 +8,12 @@ from typing import Optional
 
 import customtkinter as ctk
 
+from aniccoli.duplicate_window import DuplicateResultsWindow
+from aniccoli.duplicates import (
+    DuplicateGroup,
+    count_duplicate_copies,
+    find_duplicate_groups,
+)
 from aniccoli.history import (
     NoUndoHistoryError,
     find_latest_undoable_log,
@@ -38,10 +44,9 @@ class AniccoliApp(ctk.CTk):
         self.selected_folder: Optional[Path] = None
         self.scanned_assets: list[AssetFile] = []
         self.organization_plan: list[PlannedMove] = []
+        self.duplicate_groups: list[DuplicateGroup] = []
 
-        self.recursive_scan_var = ctk.BooleanVar(
-            value=True,
-        )
+        self.recursive_scan_var = ctk.BooleanVar(value=True)
 
         self._configure_window()
         self._create_interface()
@@ -49,18 +54,11 @@ class AniccoliApp(ctk.CTk):
     def _configure_window(self) -> None:
         """Configure the main application window."""
         self.title("Aniccoli")
-        self.geometry("1220x780")
-        self.minsize(980, 670)
+        self.geometry("1360x820")
+        self.minsize(1080, 700)
 
-        self.grid_rowconfigure(
-            0,
-            weight=1,
-        )
-
-        self.grid_columnconfigure(
-            0,
-            weight=1,
-        )
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
     def _create_interface(self) -> None:
         """Create the complete application interface."""
@@ -69,7 +67,6 @@ class AniccoliApp(ctk.CTk):
             corner_radius=0,
             fg_color="transparent",
         )
-
         self.main_container.grid(
             row=0,
             column=0,
@@ -78,15 +75,8 @@ class AniccoliApp(ctk.CTk):
             pady=25,
         )
 
-        self.main_container.grid_columnconfigure(
-            0,
-            weight=1,
-        )
-
-        self.main_container.grid_rowconfigure(
-            3,
-            weight=1,
-        )
+        self.main_container.grid_columnconfigure(0, weight=1)
+        self.main_container.grid_rowconfigure(3, weight=1)
 
         self._create_header()
         self._create_folder_controls()
@@ -99,7 +89,6 @@ class AniccoliApp(ctk.CTk):
             master=self.main_container,
             fg_color="transparent",
         )
-
         header_frame.grid(
             row=0,
             column=0,
@@ -107,19 +96,13 @@ class AniccoliApp(ctk.CTk):
             pady=(0, 20),
         )
 
-        header_frame.grid_columnconfigure(
-            1,
-            weight=1,
-        )
+        header_frame.grid_columnconfigure(1, weight=1)
 
         logo_label = ctk.CTkLabel(
             master=header_frame,
             text="🥦",
-            font=ctk.CTkFont(
-                size=48
-            ),
+            font=ctk.CTkFont(size=48),
         )
-
         logo_label.grid(
             row=0,
             column=0,
@@ -136,7 +119,6 @@ class AniccoliApp(ctk.CTk):
             ),
             anchor="w",
         )
-
         title_label.grid(
             row=0,
             column=1,
@@ -146,15 +128,12 @@ class AniccoliApp(ctk.CTk):
         description_label = ctk.CTkLabel(
             master=header_frame,
             text=(
-                "Scan, preview, organize, and restore "
+                "Scan, analyze, organize, and restore "
                 "your 3D production assets."
             ),
-            font=ctk.CTkFont(
-                size=14
-            ),
+            font=ctk.CTkFont(size=14),
             anchor="w",
         )
-
         description_label.grid(
             row=1,
             column=1,
@@ -162,12 +141,11 @@ class AniccoliApp(ctk.CTk):
         )
 
     def _create_folder_controls(self) -> None:
-        """Create folder and organization controls."""
+        """Create folder, scan, duplicate, organization, and undo controls."""
         folder_card = ctk.CTkFrame(
             master=self.main_container,
             corner_radius=15,
         )
-
         folder_card.grid(
             row=1,
             column=0,
@@ -175,10 +153,7 @@ class AniccoliApp(ctk.CTk):
             pady=(0, 18),
         )
 
-        folder_card.grid_columnconfigure(
-            0,
-            weight=1,
-        )
+        folder_card.grid_columnconfigure(0, weight=1)
 
         heading_label = ctk.CTkLabel(
             master=folder_card,
@@ -189,11 +164,10 @@ class AniccoliApp(ctk.CTk):
             ),
             anchor="w",
         )
-
         heading_label.grid(
             row=0,
             column=0,
-            columnspan=5,
+            columnspan=6,
             sticky="w",
             padx=25,
             pady=(20, 5),
@@ -202,18 +176,15 @@ class AniccoliApp(ctk.CTk):
         self.selected_folder_label = ctk.CTkLabel(
             master=folder_card,
             text="No folder selected",
-            font=ctk.CTkFont(
-                size=13
-            ),
+            font=ctk.CTkFont(size=13),
             anchor="w",
             justify="left",
-            wraplength=950,
+            wraplength=1150,
         )
-
         self.selected_folder_label.grid(
             row=1,
             column=0,
-            columnspan=5,
+            columnspan=6,
             sticky="ew",
             padx=25,
             pady=(0, 15),
@@ -223,19 +194,18 @@ class AniccoliApp(ctk.CTk):
             master=folder_card,
             text="Choose Project Folder",
             command=self._select_folder,
-            width=185,
+            width=180,
             height=40,
             font=ctk.CTkFont(
                 size=14,
                 weight="bold",
             ),
         )
-
         choose_folder_button.grid(
             row=2,
             column=0,
             sticky="w",
-            padx=(25, 10),
+            padx=(25, 8),
             pady=(0, 20),
         )
 
@@ -245,16 +215,13 @@ class AniccoliApp(ctk.CTk):
             variable=self.recursive_scan_var,
             onvalue=True,
             offvalue=False,
-            font=ctk.CTkFont(
-                size=14
-            ),
+            font=ctk.CTkFont(size=14),
         )
-
         recursive_checkbox.grid(
             row=2,
             column=1,
             sticky="w",
-            padx=10,
+            padx=8,
             pady=(0, 20),
         )
 
@@ -262,7 +229,7 @@ class AniccoliApp(ctk.CTk):
             master=folder_card,
             text="Scan Folder",
             command=self._scan_selected_folder,
-            width=130,
+            width=125,
             height=40,
             state="disabled",
             font=ctk.CTkFont(
@@ -270,11 +237,29 @@ class AniccoliApp(ctk.CTk):
                 weight="bold",
             ),
         )
-
         self.scan_button.grid(
             row=2,
             column=2,
-            padx=10,
+            padx=8,
+            pady=(0, 20),
+        )
+
+        self.duplicate_button = ctk.CTkButton(
+            master=folder_card,
+            text="Analyze Duplicates",
+            command=self._analyze_duplicates,
+            width=155,
+            height=40,
+            state="disabled",
+            font=ctk.CTkFont(
+                size=14,
+                weight="bold",
+            ),
+        )
+        self.duplicate_button.grid(
+            row=2,
+            column=3,
+            padx=8,
             pady=(0, 20),
         )
 
@@ -282,7 +267,7 @@ class AniccoliApp(ctk.CTk):
             master=folder_card,
             text="Preview Organization",
             command=self._preview_organization,
-            width=175,
+            width=170,
             height=40,
             state="disabled",
             font=ctk.CTkFont(
@@ -290,11 +275,10 @@ class AniccoliApp(ctk.CTk):
                 weight="bold",
             ),
         )
-
         self.preview_button.grid(
             row=2,
-            column=3,
-            padx=10,
+            column=4,
+            padx=8,
             pady=(0, 20),
         )
 
@@ -302,7 +286,7 @@ class AniccoliApp(ctk.CTk):
             master=folder_card,
             text="Undo Last Organization",
             command=self._undo_last_organization,
-            width=185,
+            width=180,
             height=40,
             state="disabled",
             font=ctk.CTkFont(
@@ -310,28 +294,24 @@ class AniccoliApp(ctk.CTk):
                 weight="bold",
             ),
         )
-
         self.undo_button.grid(
             row=2,
-            column=4,
+            column=5,
             sticky="e",
-            padx=(10, 25),
+            padx=(8, 25),
             pady=(0, 20),
         )
 
         self.status_label = ctk.CTkLabel(
             master=folder_card,
             text="Choose a folder to begin.",
-            font=ctk.CTkFont(
-                size=13
-            ),
+            font=ctk.CTkFont(size=13),
             anchor="w",
         )
-
         self.status_label.grid(
             row=3,
             column=0,
-            columnspan=5,
+            columnspan=6,
             sticky="ew",
             padx=25,
             pady=(0, 20),
@@ -343,7 +323,6 @@ class AniccoliApp(ctk.CTk):
             master=self.main_container,
             fg_color="transparent",
         )
-
         summary_frame.grid(
             row=2,
             column=0,
@@ -357,31 +336,25 @@ class AniccoliApp(ctk.CTk):
             uniform="summary",
         )
 
-        self.files_count_label = (
-            self._create_summary_card(
-                parent=summary_frame,
-                column=0,
-                heading="Files found",
-                starting_value="0",
-            )
+        self.files_count_label = self._create_summary_card(
+            parent=summary_frame,
+            column=0,
+            heading="Files found",
+            starting_value="0",
         )
 
-        self.total_size_label = (
-            self._create_summary_card(
-                parent=summary_frame,
-                column=1,
-                heading="Combined size",
-                starting_value="0 B",
-            )
+        self.total_size_label = self._create_summary_card(
+            parent=summary_frame,
+            column=1,
+            heading="Combined size",
+            starting_value="0 B",
         )
 
-        self.categories_count_label = (
-            self._create_summary_card(
-                parent=summary_frame,
-                column=2,
-                heading="Categories",
-                starting_value="0",
-            )
+        self.categories_count_label = self._create_summary_card(
+            parent=summary_frame,
+            column=2,
+            heading="Categories",
+            starting_value="0",
         )
 
     def _create_summary_card(
@@ -396,7 +369,6 @@ class AniccoliApp(ctk.CTk):
             master=parent,
             corner_radius=12,
         )
-
         card.grid(
             row=0,
             column=column,
@@ -415,7 +387,6 @@ class AniccoliApp(ctk.CTk):
                 weight="bold",
             ),
         )
-
         value_label.pack(
             padx=20,
             pady=(17, 2),
@@ -424,11 +395,8 @@ class AniccoliApp(ctk.CTk):
         heading_label = ctk.CTkLabel(
             master=card,
             text=heading,
-            font=ctk.CTkFont(
-                size=13
-            ),
+            font=ctk.CTkFont(size=13),
         )
-
         heading_label.pack(
             padx=20,
             pady=(0, 17),
@@ -442,22 +410,14 @@ class AniccoliApp(ctk.CTk):
             master=self.main_container,
             corner_radius=15,
         )
-
         results_card.grid(
             row=3,
             column=0,
             sticky="nsew",
         )
 
-        results_card.grid_columnconfigure(
-            0,
-            weight=1,
-        )
-
-        results_card.grid_rowconfigure(
-            2,
-            weight=1,
-        )
+        results_card.grid_columnconfigure(0, weight=1)
+        results_card.grid_rowconfigure(2, weight=1)
 
         results_heading = ctk.CTkLabel(
             master=results_card,
@@ -468,7 +428,6 @@ class AniccoliApp(ctk.CTk):
             ),
             anchor="w",
         )
-
         results_heading.grid(
             row=0,
             column=0,
@@ -481,7 +440,6 @@ class AniccoliApp(ctk.CTk):
             master=results_card,
             corner_radius=8,
         )
-
         results_header.grid(
             row=1,
             column=0,
@@ -490,25 +448,10 @@ class AniccoliApp(ctk.CTk):
             pady=(0, 5),
         )
 
-        results_header.grid_columnconfigure(
-            0,
-            weight=3,
-        )
-
-        results_header.grid_columnconfigure(
-            1,
-            weight=2,
-        )
-
-        results_header.grid_columnconfigure(
-            2,
-            weight=1,
-        )
-
-        results_header.grid_columnconfigure(
-            3,
-            weight=2,
-        )
+        results_header.grid_columnconfigure(0, weight=3)
+        results_header.grid_columnconfigure(1, weight=2)
+        results_header.grid_columnconfigure(2, weight=1)
+        results_header.grid_columnconfigure(3, weight=2)
 
         headings = (
             "File",
@@ -517,22 +460,17 @@ class AniccoliApp(ctk.CTk):
             "Planned folder",
         )
 
-        for column, heading in enumerate(
-            headings
-        ):
+        for column, heading in enumerate(headings):
             self._create_column_heading(
                 parent=results_header,
                 text=heading,
                 column=column,
             )
 
-        self.results_scroll_frame = (
-            ctk.CTkScrollableFrame(
-                master=results_card,
-                corner_radius=8,
-            )
+        self.results_scroll_frame = ctk.CTkScrollableFrame(
+            master=results_card,
+            corner_radius=8,
         )
-
         self.results_scroll_frame.grid(
             row=2,
             column=0,
@@ -541,10 +479,7 @@ class AniccoliApp(ctk.CTk):
             pady=(0, 15),
         )
 
-        self.results_scroll_frame.grid_columnconfigure(
-            0,
-            weight=1,
-        )
+        self.results_scroll_frame.grid_columnconfigure(0, weight=1)
 
         self._show_empty_results_message(
             "No scan results yet.\n"
@@ -567,7 +502,6 @@ class AniccoliApp(ctk.CTk):
             ),
             anchor="w",
         )
-
         label.grid(
             row=0,
             column=column,
@@ -592,9 +526,7 @@ class AniccoliApp(ctk.CTk):
         ).expanduser().resolve()
 
         self.selected_folder_label.configure(
-            text=str(
-                self.selected_folder
-            ),
+            text=str(self.selected_folder),
         )
 
         self.status_label.configure(
@@ -604,9 +536,7 @@ class AniccoliApp(ctk.CTk):
             ),
         )
 
-        self.scan_button.configure(
-            state="normal",
-        )
+        self.scan_button.configure(state="normal")
 
         self._reset_scan_results()
         self._refresh_undo_button()
@@ -623,10 +553,8 @@ class AniccoliApp(ctk.CTk):
             state="disabled",
             text="Scanning...",
         )
-
-        self.preview_button.configure(
-            state="disabled",
-        )
+        self.preview_button.configure(state="disabled")
+        self.duplicate_button.configure(state="disabled")
 
         self.status_label.configure(
             text="Scanning the selected folder...",
@@ -648,6 +576,7 @@ class AniccoliApp(ctk.CTk):
         ) as error:
             self.scanned_assets = []
             self.organization_plan = []
+            self.duplicate_groups = []
 
             self.status_label.configure(
                 text=f"Scan failed: {error}",
@@ -656,11 +585,11 @@ class AniccoliApp(ctk.CTk):
             self._display_assets()
         else:
             self.organization_plan = []
+            self.duplicate_groups = []
+
             self._display_assets()
 
-            file_count = len(
-                self.scanned_assets
-            )
+            file_count = len(self.scanned_assets)
 
             self.status_label.configure(
                 text=(
@@ -671,9 +600,8 @@ class AniccoliApp(ctk.CTk):
             )
 
             if self.scanned_assets:
-                self.preview_button.configure(
-                    state="normal",
-                )
+                self.preview_button.configure(state="normal")
+                self.duplicate_button.configure(state="normal")
         finally:
             self.scan_button.configure(
                 state="normal",
@@ -686,22 +614,14 @@ class AniccoliApp(ctk.CTk):
         """Clear results when another folder is selected."""
         self.scanned_assets = []
         self.organization_plan = []
+        self.duplicate_groups = []
 
-        self.files_count_label.configure(
-            text="0",
-        )
+        self.files_count_label.configure(text="0")
+        self.total_size_label.configure(text="0 B")
+        self.categories_count_label.configure(text="0")
 
-        self.total_size_label.configure(
-            text="0 B",
-        )
-
-        self.categories_count_label.configure(
-            text="0",
-        )
-
-        self.preview_button.configure(
-            state="disabled",
-        )
+        self.preview_button.configure(state="disabled")
+        self.duplicate_button.configure(state="disabled")
 
         self._clear_result_rows()
 
@@ -714,30 +634,19 @@ class AniccoliApp(ctk.CTk):
         """Update the summary cards and results table."""
         self._clear_result_rows()
 
-        total_size = calculate_total_size(
-            self.scanned_assets
-        )
-
-        category_summary = summarize_assets(
-            self.scanned_assets
-        )
+        total_size = calculate_total_size(self.scanned_assets)
+        category_summary = summarize_assets(self.scanned_assets)
 
         self.files_count_label.configure(
-            text=str(
-                len(self.scanned_assets)
-            ),
+            text=str(len(self.scanned_assets)),
         )
 
         self.total_size_label.configure(
-            text=format_file_size(
-                total_size
-            ),
+            text=format_file_size(total_size),
         )
 
         self.categories_count_label.configure(
-            text=str(
-                len(category_summary)
-            ),
+            text=str(len(category_summary)),
         )
 
         if not self.scanned_assets:
@@ -746,9 +655,7 @@ class AniccoliApp(ctk.CTk):
             )
             return
 
-        for row_number, asset in enumerate(
-            self.scanned_assets
-        ):
+        for row_number, asset in enumerate(self.scanned_assets):
             self._create_asset_row(
                 asset=asset,
                 row_number=row_number,
@@ -762,12 +669,9 @@ class AniccoliApp(ctk.CTk):
         empty_label = ctk.CTkLabel(
             master=self.results_scroll_frame,
             text=message,
-            font=ctk.CTkFont(
-                size=14
-            ),
+            font=ctk.CTkFont(size=14),
             justify="center",
         )
-
         empty_label.grid(
             row=0,
             column=0,
@@ -777,9 +681,7 @@ class AniccoliApp(ctk.CTk):
 
     def _clear_result_rows(self) -> None:
         """Remove every widget from the results area."""
-        for child_widget in (
-            self.results_scroll_frame.winfo_children()
-        ):
+        for child_widget in self.results_scroll_frame.winfo_children():
             child_widget.destroy()
 
     def _create_asset_row(
@@ -792,7 +694,6 @@ class AniccoliApp(ctk.CTk):
             master=self.results_scroll_frame,
             corner_radius=8,
         )
-
         row_frame.grid(
             row=row_number,
             column=0,
@@ -800,25 +701,10 @@ class AniccoliApp(ctk.CTk):
             pady=(0, 6),
         )
 
-        row_frame.grid_columnconfigure(
-            0,
-            weight=3,
-        )
-
-        row_frame.grid_columnconfigure(
-            1,
-            weight=2,
-        )
-
-        row_frame.grid_columnconfigure(
-            2,
-            weight=1,
-        )
-
-        row_frame.grid_columnconfigure(
-            3,
-            weight=2,
-        )
+        row_frame.grid_columnconfigure(0, weight=3)
+        row_frame.grid_columnconfigure(1, weight=2)
+        row_frame.grid_columnconfigure(2, weight=1)
+        row_frame.grid_columnconfigure(3, weight=2)
 
         values = (
             str(asset.relative_path),
@@ -827,19 +713,14 @@ class AniccoliApp(ctk.CTk):
             str(asset.destination),
         )
 
-        for column, value in enumerate(
-            values
-        ):
+        for column, value in enumerate(values):
             value_label = ctk.CTkLabel(
                 master=row_frame,
                 text=value,
-                font=ctk.CTkFont(
-                    size=12
-                ),
+                font=ctk.CTkFont(size=12),
                 anchor="w",
                 justify="left",
             )
-
             value_label.grid(
                 row=0,
                 column=column,
@@ -847,6 +728,81 @@ class AniccoliApp(ctk.CTk):
                 padx=12,
                 pady=10,
             )
+
+    def _analyze_duplicates(self) -> None:
+        """Analyze scanned files and display exact-content duplicates."""
+        if not self.scanned_assets:
+            self.status_label.configure(
+                text="Scan a folder before analyzing duplicates.",
+            )
+            return
+
+        self.duplicate_button.configure(
+            state="disabled",
+            text="Analyzing...",
+        )
+
+        self.status_label.configure(
+            text=(
+                "Analyzing possible duplicates. "
+                "Large files may take a moment..."
+            ),
+        )
+
+        self.update_idletasks()
+
+        try:
+            self.duplicate_groups = find_duplicate_groups(
+                self.scanned_assets,
+                include_empty=False,
+            )
+        except (
+            FileNotFoundError,
+            PermissionError,
+            OSError,
+            ValueError,
+        ) as error:
+            self.duplicate_groups = []
+
+            messagebox.showerror(
+                title="Duplicate Analysis Failed",
+                message=str(error),
+                parent=self,
+            )
+
+            self.status_label.configure(
+                text=f"Duplicate analysis failed: {error}",
+            )
+            return
+        finally:
+            self.duplicate_button.configure(
+                state="normal",
+                text="Analyze Duplicates",
+            )
+
+        duplicate_copy_count = count_duplicate_copies(
+            self.duplicate_groups
+        )
+
+        if self.duplicate_groups:
+            self.status_label.configure(
+                text=(
+                    f"Duplicate analysis complete. "
+                    f"{len(self.duplicate_groups)} group"
+                    f"{'' if len(self.duplicate_groups) == 1 else 's'} "
+                    f"and {duplicate_copy_count} extra cop"
+                    f"{'y' if duplicate_copy_count == 1 else 'ies'} found."
+                ),
+            )
+        else:
+            self.status_label.configure(
+                text="Duplicate analysis complete. No duplicates found.",
+            )
+
+        DuplicateResultsWindow(
+            master=self,
+            duplicate_groups=self.duplicate_groups,
+        )
 
     def _preview_organization(self) -> None:
         """Build and display the safe organization preview."""
@@ -860,11 +816,9 @@ class AniccoliApp(ctk.CTk):
             return
 
         try:
-            self.organization_plan = (
-                build_organization_plan(
-                    project_folder=self.selected_folder,
-                    assets=self.scanned_assets,
-                )
+            self.organization_plan = build_organization_plan(
+                project_folder=self.selected_folder,
+                assets=self.scanned_assets,
             )
         except (
             FileNotFoundError,
@@ -899,38 +853,16 @@ class AniccoliApp(ctk.CTk):
         if self.selected_folder is None:
             return
 
-        preview_window = ctk.CTkToplevel(
-            self
-        )
+        preview_window = ctk.CTkToplevel(self)
+        preview_window.title("Aniccoli Organization Preview")
+        preview_window.geometry("1050x650")
+        preview_window.minsize(850, 500)
 
-        preview_window.title(
-            "Aniccoli Organization Preview"
-        )
-
-        preview_window.geometry(
-            "1050x650"
-        )
-
-        preview_window.minsize(
-            850,
-            500,
-        )
-
-        preview_window.transient(
-            self
-        )
-
+        preview_window.transient(self)
         preview_window.grab_set()
 
-        preview_window.grid_rowconfigure(
-            2,
-            weight=1,
-        )
-
-        preview_window.grid_columnconfigure(
-            0,
-            weight=1,
-        )
+        preview_window.grid_rowconfigure(2, weight=1)
+        preview_window.grid_columnconfigure(0, weight=1)
 
         title_label = ctk.CTkLabel(
             master=preview_window,
@@ -940,7 +872,6 @@ class AniccoliApp(ctk.CTk):
                 weight="bold",
             ),
         )
-
         title_label.grid(
             row=0,
             column=0,
@@ -961,12 +892,9 @@ class AniccoliApp(ctk.CTk):
                 f"{'' if conflict_count == 1 else 's'} "
                 "will be safely renamed."
             ),
-            font=ctk.CTkFont(
-                size=14
-            ),
+            font=ctk.CTkFont(size=14),
             anchor="w",
         )
-
         summary_label.grid(
             row=1,
             column=0,
@@ -979,7 +907,6 @@ class AniccoliApp(ctk.CTk):
             master=preview_window,
             corner_radius=12,
         )
-
         preview_scroll.grid(
             row=2,
             column=0,
@@ -987,11 +914,7 @@ class AniccoliApp(ctk.CTk):
             padx=25,
             pady=(0, 15),
         )
-
-        preview_scroll.grid_columnconfigure(
-            0,
-            weight=1,
-        )
+        preview_scroll.grid_columnconfigure(0, weight=1)
 
         if not self.organization_plan:
             empty_label = ctk.CTkLabel(
@@ -1000,12 +923,9 @@ class AniccoliApp(ctk.CTk):
                     "Nothing needs to be moved.\n"
                     "The scanned assets are already organized."
                 ),
-                font=ctk.CTkFont(
-                    size=15
-                ),
+                font=ctk.CTkFont(size=15),
                 justify="center",
             )
-
             empty_label.grid(
                 row=0,
                 column=0,
@@ -1026,7 +946,6 @@ class AniccoliApp(ctk.CTk):
             master=preview_window,
             fg_color="transparent",
         )
-
         action_frame.grid(
             row=3,
             column=0,
@@ -1035,10 +954,7 @@ class AniccoliApp(ctk.CTk):
             pady=(0, 25),
         )
 
-        action_frame.grid_columnconfigure(
-            0,
-            weight=1,
-        )
+        action_frame.grid_columnconfigure(0, weight=1)
 
         close_button = ctk.CTkButton(
             master=action_frame,
@@ -1047,7 +963,6 @@ class AniccoliApp(ctk.CTk):
             width=145,
             height=40,
         )
-
         close_button.grid(
             row=0,
             column=1,
@@ -1072,7 +987,6 @@ class AniccoliApp(ctk.CTk):
                 weight="bold",
             ),
         )
-
         organize_button.grid(
             row=0,
             column=2,
@@ -1092,7 +1006,6 @@ class AniccoliApp(ctk.CTk):
             master=parent,
             corner_radius=9,
         )
-
         row_frame.grid(
             row=row_number,
             column=0,
@@ -1100,20 +1013,9 @@ class AniccoliApp(ctk.CTk):
             pady=(0, 8),
         )
 
-        row_frame.grid_columnconfigure(
-            0,
-            weight=3,
-        )
-
-        row_frame.grid_columnconfigure(
-            1,
-            weight=4,
-        )
-
-        row_frame.grid_columnconfigure(
-            2,
-            weight=1,
-        )
+        row_frame.grid_columnconfigure(0, weight=3)
+        row_frame.grid_columnconfigure(1, weight=4)
+        row_frame.grid_columnconfigure(2, weight=1)
 
         source_label = ctk.CTkLabel(
             master=row_frame,
@@ -1121,13 +1023,10 @@ class AniccoliApp(ctk.CTk):
                 "From\n"
                 f"{planned_move.asset.relative_path}"
             ),
-            font=ctk.CTkFont(
-                size=12
-            ),
+            font=ctk.CTkFont(size=12),
             anchor="w",
             justify="left",
         )
-
         source_label.grid(
             row=0,
             column=0,
@@ -1148,13 +1047,10 @@ class AniccoliApp(ctk.CTk):
                 "To\n"
                 f"{destination_relative}"
             ),
-            font=ctk.CTkFont(
-                size=12
-            ),
+            font=ctk.CTkFont(size=12),
             anchor="w",
             justify="left",
         )
-
         destination_label.grid(
             row=0,
             column=1,
@@ -1177,7 +1073,6 @@ class AniccoliApp(ctk.CTk):
                 weight="bold",
             ),
         )
-
         conflict_label.grid(
             row=0,
             column=2,
@@ -1196,9 +1091,7 @@ class AniccoliApp(ctk.CTk):
         ):
             return
 
-        file_count = len(
-            self.organization_plan
-        )
+        file_count = len(self.organization_plan)
 
         confirmed = messagebox.askyesno(
             title="Confirm File Organization",
@@ -1217,7 +1110,6 @@ class AniccoliApp(ctk.CTk):
         self.status_label.configure(
             text="Organizing files...",
         )
-
         self.update_idletasks()
 
         try:
@@ -1282,11 +1174,9 @@ class AniccoliApp(ctk.CTk):
         )
 
     def _refresh_undo_button(self) -> None:
-        """Enable undo when the selected project has undoable history."""
+        """Enable undo when the project has undoable history."""
         if self.selected_folder is None:
-            self.undo_button.configure(
-                state="disabled",
-            )
+            self.undo_button.configure(state="disabled")
             return
 
         try:
@@ -1349,10 +1239,7 @@ class AniccoliApp(ctk.CTk):
                 message=str(error),
                 parent=self,
             )
-
-            self.status_label.configure(
-                text=str(error),
-            )
+            self.status_label.configure(text=str(error))
             return
         except (
             FileNotFoundError,
@@ -1366,7 +1253,6 @@ class AniccoliApp(ctk.CTk):
                 message=str(error),
                 parent=self,
             )
-
             self.status_label.configure(
                 text=f"Undo failed: {error}",
             )
@@ -1425,12 +1311,7 @@ class AniccoliApp(ctk.CTk):
 
 def create_app() -> AniccoliApp:
     """Create and return the Aniccoli application."""
-    ctk.set_appearance_mode(
-        "System"
-    )
-
-    ctk.set_default_color_theme(
-        "green"
-    )
+    ctk.set_appearance_mode("System")
+    ctk.set_default_color_theme("green")
 
     return AniccoliApp()
