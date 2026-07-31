@@ -27,6 +27,12 @@ from aniccoli.history import (
     find_latest_undoable_log,
     undo_latest_organization,
 )
+from aniccoli.organization_options import (
+    DateGrouping,
+    DateSource,
+    OrganizationOptions,
+    build_destination_folder,
+)
 from aniccoli.organizer import (
     PlannedMove,
     build_organization_plan,
@@ -47,13 +53,30 @@ ALL_EXTENSIONS = "All extensions"
 ANY_SIZE = "Any size"
 ANY_TIME = "Any time"
 
-SIZE_FILTER_OPTIONS: dict[str, tuple[int | None, int | None]] = {
+
+SIZE_FILTER_OPTIONS: dict[
+    str,
+    tuple[int | None, int | None],
+] = {
     ANY_SIZE: (None, None),
-    "Up to 1 MB": (None, 1024**2),
-    "1 MB to 10 MB": (1024**2, 10 * 1024**2),
-    "10 MB to 100 MB": (10 * 1024**2, 100 * 1024**2),
-    "100 MB and above": (100 * 1024**2, None),
+    "Up to 1 MB": (
+        None,
+        1024**2,
+    ),
+    "1 MB to 10 MB": (
+        1024**2,
+        10 * 1024**2,
+    ),
+    "10 MB to 100 MB": (
+        10 * 1024**2,
+        100 * 1024**2,
+    ),
+    "100 MB and above": (
+        100 * 1024**2,
+        None,
+    ),
 }
+
 
 MODIFIED_FILTER_OPTIONS: dict[str, int | None] = {
     ANY_TIME: None,
@@ -78,8 +101,15 @@ class AniccoliApp(ctk.CTk):
         self.organization_plan: list[PlannedMove] = []
         self.duplicate_groups: list[DuplicateGroup] = []
 
-        self.available_categories: tuple[AssetCategory, ...] = ()
-        self.available_extensions: tuple[str, ...] = ()
+        self.available_categories: tuple[
+            AssetCategory,
+            ...,
+        ] = ()
+
+        self.available_extensions: tuple[
+            str,
+            ...,
+        ] = ()
 
         self.recursive_scan_var = ctk.BooleanVar(
             value=True,
@@ -105,14 +135,26 @@ class AniccoliApp(ctk.CTk):
             value=ANY_TIME,
         )
 
+        self.date_grouping_var = ctk.StringVar(
+            value=str(
+                DateGrouping.NONE
+            ),
+        )
+
+        self.date_source_var = ctk.StringVar(
+            value=str(
+                DateSource.MODIFIED
+            ),
+        )
+
         self._configure_window()
         self._create_interface()
 
     def _configure_window(self) -> None:
         """Configure the main application window."""
         self.title("Aniccoli")
-        self.geometry("1440x860")
-        self.minsize(1120, 720)
+        self.geometry("1440x900")
+        self.minsize(1120, 760)
 
         self.grid_rowconfigure(
             0,
@@ -224,7 +266,7 @@ class AniccoliApp(ctk.CTk):
         )
 
     def _create_folder_controls(self) -> None:
-        """Create folder, scan, duplicate, organization, and undo controls."""
+        """Create folder, organization, and undo controls."""
         folder_card = ctk.CTkFrame(
             master=self.main_container,
             corner_radius=15,
@@ -401,6 +443,135 @@ class AniccoliApp(ctk.CTk):
             pady=(0, 20),
         )
 
+        organization_settings_frame = ctk.CTkFrame(
+            master=folder_card,
+            corner_radius=10,
+        )
+
+        organization_settings_frame.grid(
+            row=3,
+            column=0,
+            columnspan=6,
+            sticky="ew",
+            padx=25,
+            pady=(0, 12),
+        )
+
+        organization_settings_frame.grid_columnconfigure(
+            4,
+            weight=1,
+        )
+
+        organization_settings_label = ctk.CTkLabel(
+            master=organization_settings_frame,
+            text="Organization settings",
+            font=ctk.CTkFont(
+                size=14,
+                weight="bold",
+            ),
+        )
+
+        organization_settings_label.grid(
+            row=0,
+            column=0,
+            padx=(15, 10),
+            pady=12,
+        )
+
+        date_grouping_label = ctk.CTkLabel(
+            master=organization_settings_frame,
+            text="Date grouping:",
+            font=ctk.CTkFont(
+                size=13,
+            ),
+        )
+
+        date_grouping_label.grid(
+            row=0,
+            column=1,
+            padx=(10, 5),
+            pady=12,
+        )
+
+        self.date_grouping_menu = ctk.CTkOptionMenu(
+            master=organization_settings_frame,
+            variable=self.date_grouping_var,
+            values=[
+                str(option)
+                for option in DateGrouping
+            ],
+            command=lambda _value: (
+                self._on_organization_options_changed()
+            ),
+            width=170,
+            height=36,
+        )
+
+        self.date_grouping_menu.grid(
+            row=0,
+            column=2,
+            padx=(5, 15),
+            pady=12,
+        )
+
+        date_source_label = ctk.CTkLabel(
+            master=organization_settings_frame,
+            text="Use:",
+            font=ctk.CTkFont(
+                size=13,
+            ),
+        )
+
+        date_source_label.grid(
+            row=0,
+            column=3,
+            padx=(10, 5),
+            pady=12,
+        )
+
+        self.date_source_menu = ctk.CTkOptionMenu(
+            master=organization_settings_frame,
+            variable=self.date_source_var,
+            values=[
+                str(option)
+                for option in DateSource
+            ],
+            command=lambda _value: (
+                self._on_organization_options_changed()
+            ),
+            width=170,
+            height=36,
+            state="disabled",
+        )
+
+        self.date_source_menu.grid(
+            row=0,
+            column=4,
+            sticky="w",
+            padx=(5, 15),
+            pady=12,
+        )
+
+        settings_description = ctk.CTkLabel(
+            master=organization_settings_frame,
+            text=(
+                "Optional: place files inside year or "
+                "year-and-month folders."
+            ),
+            font=ctk.CTkFont(
+                size=12,
+            ),
+            anchor="e",
+        )
+
+        settings_description.grid(
+            row=0,
+            column=5,
+            sticky="e",
+            padx=(10, 15),
+            pady=12,
+        )
+
         self.status_label = ctk.CTkLabel(
             master=folder_card,
             text="Choose a folder to begin.",
@@ -411,7 +582,7 @@ class AniccoliApp(ctk.CTk):
         )
 
         self.status_label.grid(
-            row=3,
+            row=4,
             column=0,
             columnspan=6,
             sticky="ew",
@@ -439,25 +610,31 @@ class AniccoliApp(ctk.CTk):
             uniform="summary",
         )
 
-        self.files_count_label = self._create_summary_card(
-            parent=summary_frame,
-            column=0,
-            heading="Files found",
-            starting_value="0",
+        self.files_count_label = (
+            self._create_summary_card(
+                parent=summary_frame,
+                column=0,
+                heading="Files found",
+                starting_value="0",
+            )
         )
 
-        self.total_size_label = self._create_summary_card(
-            parent=summary_frame,
-            column=1,
-            heading="Combined size",
-            starting_value="0 B",
+        self.total_size_label = (
+            self._create_summary_card(
+                parent=summary_frame,
+                column=1,
+                heading="Combined size",
+                starting_value="0 B",
+            )
         )
 
-        self.categories_count_label = self._create_summary_card(
-            parent=summary_frame,
-            column=2,
-            heading="Categories",
-            starting_value="0",
+        self.categories_count_label = (
+            self._create_summary_card(
+                parent=summary_frame,
+                column=2,
+                heading="Categories",
+                starting_value="0",
+            )
         )
 
     def _create_summary_card(
@@ -513,7 +690,7 @@ class AniccoliApp(ctk.CTk):
         return value_label
 
     def _create_results_section(self) -> None:
-        """Create the filtering controls and scrollable asset results."""
+        """Create filters and the scrollable results section."""
         results_card = ctk.CTkFrame(
             master=self.main_container,
             corner_radius=15,
@@ -585,7 +762,7 @@ class AniccoliApp(ctk.CTk):
         )
 
         self._create_filter_controls(
-            results_card,
+            results_card
         )
 
         results_header = ctk.CTkFrame(
@@ -637,9 +814,11 @@ class AniccoliApp(ctk.CTk):
                 column=column,
             )
 
-        self.results_scroll_frame = ctk.CTkScrollableFrame(
-            master=results_card,
-            corner_radius=8,
+        self.results_scroll_frame = (
+            ctk.CTkScrollableFrame(
+                master=results_card,
+                corner_radius=8,
+            )
         )
 
         self.results_scroll_frame.grid(
@@ -664,7 +843,7 @@ class AniccoliApp(ctk.CTk):
         self,
         parent: ctk.CTkFrame,
     ) -> None:
-        """Create search, category, extension, size, and date filters."""
+        """Create search and filtering controls."""
         filter_frame = ctk.CTkFrame(
             master=parent,
             corner_radius=10,
@@ -716,7 +895,9 @@ class AniccoliApp(ctk.CTk):
             values=[
                 ALL_CATEGORIES,
             ],
-            command=lambda _value: self._apply_filters(),
+            command=lambda _value: (
+                self._apply_filters()
+            ),
             height=38,
         )
 
@@ -734,7 +915,9 @@ class AniccoliApp(ctk.CTk):
             values=[
                 ALL_EXTENSIONS,
             ],
-            command=lambda _value: self._apply_filters(),
+            command=lambda _value: (
+                self._apply_filters()
+            ),
             height=38,
         )
 
@@ -752,7 +935,9 @@ class AniccoliApp(ctk.CTk):
             values=list(
                 SIZE_FILTER_OPTIONS,
             ),
-            command=lambda _value: self._apply_filters(),
+            command=lambda _value: (
+                self._apply_filters()
+            ),
             height=38,
         )
 
@@ -770,7 +955,9 @@ class AniccoliApp(ctk.CTk):
             values=list(
                 MODIFIED_FILTER_OPTIONS,
             ),
-            command=lambda _value: self._apply_filters(),
+            command=lambda _value: (
+                self._apply_filters()
+            ),
             height=38,
         )
 
@@ -821,6 +1008,50 @@ class AniccoliApp(ctk.CTk):
             padx=12,
             pady=10,
         )
+
+    def _build_organization_options(
+        self,
+    ) -> OrganizationOptions:
+        """Build organization rules from the selected controls."""
+        date_grouping = DateGrouping(
+            self.date_grouping_var.get()
+        )
+
+        date_source = DateSource(
+            self.date_source_var.get()
+        )
+
+        return OrganizationOptions(
+            date_grouping=date_grouping,
+            date_source=date_source,
+        )
+
+    def _on_organization_options_changed(
+        self,
+    ) -> None:
+        """Refresh destinations when organization settings change."""
+        options = self._build_organization_options()
+
+        self.date_source_menu.configure(
+            state=(
+                "normal"
+                if options.uses_date_grouping
+                else "disabled"
+            ),
+        )
+
+        self.organization_plan = []
+
+        if self.scanned_assets:
+            self._display_assets()
+
+            self.status_label.configure(
+                text=(
+                    "Organization settings updated. "
+                    "Open Preview Organization to review "
+                    "the new destinations."
+                ),
+            )
 
     def _select_folder(self) -> None:
         """Open the folder picker and store the selected folder."""
@@ -944,7 +1175,7 @@ class AniccoliApp(ctk.CTk):
             self._refresh_undo_button()
 
     def _refresh_filter_options(self) -> None:
-        """Refresh available category and extension choices."""
+        """Refresh category and extension choices."""
         self.available_categories = (
             collect_available_categories(
                 self.scanned_assets
@@ -995,7 +1226,7 @@ class AniccoliApp(ctk.CTk):
             )
 
     def _reset_filter_controls(self) -> None:
-        """Reset every search and filter control to its default value."""
+        """Reset all filter controls."""
         self.search_var.set(
             "",
         )
@@ -1017,12 +1248,12 @@ class AniccoliApp(ctk.CTk):
         )
 
     def _clear_filters(self) -> None:
-        """Clear every active filter and redisplay all scanned assets."""
+        """Clear all active filters."""
         self._reset_filter_controls()
         self._apply_filters()
 
     def _build_asset_filter(self) -> AssetFilter:
-        """Build an AssetFilter from the current interface controls."""
+        """Build an AssetFilter from the interface controls."""
         selected_category_text = (
             self.category_filter_var.get()
         )
@@ -1057,8 +1288,10 @@ class AniccoliApp(ctk.CTk):
             )
         )
 
-        modified_days = MODIFIED_FILTER_OPTIONS.get(
-            self.modified_filter_var.get()
+        modified_days = (
+            MODIFIED_FILTER_OPTIONS.get(
+                self.modified_filter_var.get()
+            )
         )
 
         modified_after = (
@@ -1080,7 +1313,7 @@ class AniccoliApp(ctk.CTk):
         )
 
     def _apply_filters(self) -> None:
-        """Filter scanned assets and refresh the visible result rows."""
+        """Filter scanned assets and refresh the visible rows."""
         if not self.scanned_assets:
             self.filtered_assets = []
 
@@ -1182,7 +1415,7 @@ class AniccoliApp(ctk.CTk):
         )
 
     def _display_assets(self) -> None:
-        """Update summary cards, then apply the active filters."""
+        """Update the summary cards and apply active filters."""
         total_size = calculate_total_size(
             self.scanned_assets
         )
@@ -1291,11 +1524,26 @@ class AniccoliApp(ctk.CTk):
             weight=2,
         )
 
+        planned_destination = (
+            build_destination_folder(
+                asset=asset,
+                options=(
+                    self._build_organization_options()
+                ),
+            )
+        )
+
         values = (
-            str(asset.relative_path),
-            str(asset.category),
+            str(
+                asset.relative_path
+            ),
+            str(
+                asset.category
+            ),
             asset.size_text,
-            str(asset.destination),
+            str(
+                planned_destination
+            ),
         )
 
         for column, value in enumerate(
@@ -1320,7 +1568,7 @@ class AniccoliApp(ctk.CTk):
             )
 
     def _analyze_duplicates(self) -> None:
-        """Analyze scanned files and display exact-content duplicates."""
+        """Analyze and display exact-content duplicates."""
         if not self.scanned_assets:
             self.status_label.configure(
                 text=(
@@ -1345,9 +1593,11 @@ class AniccoliApp(ctk.CTk):
         self.update_idletasks()
 
         try:
-            self.duplicate_groups = find_duplicate_groups(
-                self.scanned_assets,
-                include_empty=False,
+            self.duplicate_groups = (
+                find_duplicate_groups(
+                    self.scanned_assets,
+                    include_empty=False,
+                )
             )
         except (
             FileNotFoundError,
@@ -1359,7 +1609,9 @@ class AniccoliApp(ctk.CTk):
 
             messagebox.showerror(
                 title="Duplicate Analysis Failed",
-                message=str(error),
+                message=str(
+                    error
+                ),
                 parent=self,
             )
 
@@ -1375,8 +1627,10 @@ class AniccoliApp(ctk.CTk):
                 text="Analyze Duplicates",
             )
 
-        duplicate_copy_count = count_duplicate_copies(
-            self.duplicate_groups
+        duplicate_copy_count = (
+            count_duplicate_copies(
+                self.duplicate_groups
+            )
         )
 
         if self.duplicate_groups:
@@ -1408,7 +1662,7 @@ class AniccoliApp(ctk.CTk):
         )
 
     def _preview_organization(self) -> None:
-        """Build and display the safe organization preview."""
+        """Build and display the organization preview."""
         if (
             self.selected_folder is None
             or not self.scanned_assets
@@ -1422,9 +1676,14 @@ class AniccoliApp(ctk.CTk):
             return
 
         try:
-            self.organization_plan = build_organization_plan(
-                project_folder=self.selected_folder,
-                assets=self.scanned_assets,
+            self.organization_plan = (
+                build_organization_plan(
+                    project_folder=self.selected_folder,
+                    assets=self.scanned_assets,
+                    options=(
+                        self._build_organization_options()
+                    ),
+                )
             )
         except (
             FileNotFoundError,
@@ -1460,7 +1719,7 @@ class AniccoliApp(ctk.CTk):
             return
 
         preview_window = ctk.CTkToplevel(
-            self,
+            self
         )
 
         preview_window.title(
@@ -1477,7 +1736,7 @@ class AniccoliApp(ctk.CTk):
         )
 
         preview_window.transient(
-            self,
+            self
         )
 
         preview_window.grab_set()
@@ -1513,18 +1772,25 @@ class AniccoliApp(ctk.CTk):
             self.organization_plan
         )
 
+        options = (
+            self._build_organization_options()
+        )
+
         summary_label = ctk.CTkLabel(
             master=preview_window,
             text=(
                 f"{len(self.organization_plan)} files will move. "
                 f"{conflict_count} filename conflict"
                 f"{'' if conflict_count == 1 else 's'} "
-                "will be safely renamed."
+                "will be safely renamed.\n"
+                f"Date grouping: {options.date_grouping} • "
+                f"Date source: {options.date_source}"
             ),
             font=ctk.CTkFont(
                 size=14,
             ),
             anchor="w",
+            justify="left",
         )
 
         summary_label.grid(
@@ -1617,8 +1883,10 @@ class AniccoliApp(ctk.CTk):
         organize_button = ctk.CTkButton(
             master=action_frame,
             text="Organize Files",
-            command=lambda: self._confirm_and_organize(
-                preview_window
+            command=lambda: (
+                self._confirm_and_organize(
+                    preview_window
+                )
             ),
             width=155,
             height=40,
@@ -1747,7 +2015,7 @@ class AniccoliApp(ctk.CTk):
         self,
         preview_window: ctk.CTkToplevel,
     ) -> None:
-        """Ask for confirmation and execute the organization plan."""
+        """Confirm and execute the organization plan."""
         if (
             self.selected_folder is None
             or not self.organization_plan
@@ -1792,7 +2060,9 @@ class AniccoliApp(ctk.CTk):
         ) as error:
             messagebox.showerror(
                 title="Organization Failed",
-                message=str(error),
+                message=str(
+                    error
+                ),
                 parent=preview_window,
             )
 
@@ -1868,7 +2138,7 @@ class AniccoliApp(ctk.CTk):
         )
 
     def _undo_last_organization(self) -> None:
-        """Confirm and undo the latest organization operation."""
+        """Confirm and undo the latest organization."""
         if self.selected_folder is None:
             return
 
@@ -1907,12 +2177,16 @@ class AniccoliApp(ctk.CTk):
         except NoUndoHistoryError as error:
             messagebox.showinfo(
                 title="Nothing to Undo",
-                message=str(error),
+                message=str(
+                    error
+                ),
                 parent=self,
             )
 
             self.status_label.configure(
-                text=str(error),
+                text=str(
+                    error
+                ),
             )
             return
         except (
@@ -1924,7 +2198,9 @@ class AniccoliApp(ctk.CTk):
         ) as error:
             messagebox.showerror(
                 title="Undo Failed",
-                message=str(error),
+                message=str(
+                    error
+                ),
                 parent=self,
             )
 
