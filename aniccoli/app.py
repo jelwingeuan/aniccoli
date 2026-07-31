@@ -39,6 +39,10 @@ from aniccoli.organizer import (
     count_conflict_renames,
     execute_organization_plan,
 )
+from aniccoli.reports import (
+    ReportFormat,
+    export_asset_report,
+)
 from aniccoli.scanner import (
     AssetFile,
     calculate_total_size,
@@ -569,6 +573,26 @@ class AniccoliApp(ctk.CTk):
             column=5,
             sticky="e",
             padx=(10, 15),
+            pady=12,
+        )
+
+        self.export_button = ctk.CTkButton(
+            master=organization_settings_frame,
+            text="Export Report",
+            command=self._export_inventory_report,
+            width=135,
+            height=36,
+            state="disabled",
+            font=ctk.CTkFont(
+                size=13,
+                weight="bold",
+            ),
+        )
+
+        self.export_button.grid(
+            row=0,
+            column=6,
+            padx=(0, 15),
             pady=12,
         )
 
@@ -1109,6 +1133,10 @@ class AniccoliApp(ctk.CTk):
             state="disabled",
         )
 
+        self.export_button.configure(
+            state="disabled",
+        )
+
         self.status_label.configure(
             text="Scanning the selected folder...",
         )
@@ -1164,6 +1192,10 @@ class AniccoliApp(ctk.CTk):
                 )
 
                 self.duplicate_button.configure(
+                    state="normal",
+                )
+
+                self.export_button.configure(
                     state="normal",
                 )
         finally:
@@ -1391,6 +1423,10 @@ class AniccoliApp(ctk.CTk):
             state="disabled",
         )
 
+        self.export_button.configure(
+            state="disabled",
+        )
+
         self.available_categories = ()
         self.available_extensions = ()
 
@@ -1566,6 +1602,116 @@ class AniccoliApp(ctk.CTk):
                 padx=12,
                 pady=10,
             )
+
+    def _export_inventory_report(self) -> None:
+        """Export all scanned assets as a JSON or CSV inventory report."""
+        if (
+            self.selected_folder is None
+            or not self.scanned_assets
+        ):
+            self.status_label.configure(
+                text="Scan a folder before exporting a report.",
+            )
+            return
+
+        selected_path = filedialog.asksaveasfilename(
+            parent=self,
+            title="Export Aniccoli Asset Inventory",
+            initialdir=str(
+                self.selected_folder
+            ),
+            initialfile="aniccoli_asset_inventory.json",
+            defaultextension=".json",
+            filetypes=(
+                (
+                    "JSON report",
+                    "*.json",
+                ),
+                (
+                    "CSV report",
+                    "*.csv",
+                ),
+            ),
+        )
+
+        if not selected_path:
+            return
+
+        output_path = Path(
+            selected_path
+        ).expanduser()
+
+        report_format = (
+            ReportFormat.CSV
+            if output_path.suffix.lower() == ".csv"
+            else ReportFormat.JSON
+        )
+
+        self.export_button.configure(
+            state="disabled",
+            text="Exporting...",
+        )
+
+        self.status_label.configure(
+            text="Exporting the asset inventory report...",
+        )
+
+        self.update_idletasks()
+
+        try:
+            result = export_asset_report(
+                output_path=output_path,
+                assets=self.scanned_assets,
+                project_folder=self.selected_folder,
+                options=self._build_organization_options(),
+                report_format=report_format,
+                overwrite=False,
+            )
+        except (
+            PermissionError,
+            OSError,
+            TypeError,
+            ValueError,
+        ) as error:
+            messagebox.showerror(
+                title="Report Export Failed",
+                message=str(
+                    error
+                ),
+                parent=self,
+            )
+
+            self.status_label.configure(
+                text=f"Report export failed: {error}",
+            )
+            return
+        finally:
+            self.export_button.configure(
+                state=(
+                    "normal"
+                    if self.scanned_assets
+                    else "disabled"
+                ),
+                text="Export Report",
+            )
+
+        messagebox.showinfo(
+            title="Report Exported",
+            message=(
+                f"Format: {result.report_format}\n"
+                f"Assets exported: {result.asset_count}\n"
+                f"Combined size: {result.total_size_text}\n\n"
+                f"Saved to:\n{result.report_path}"
+            ),
+            parent=self,
+        )
+
+        self.status_label.configure(
+            text=(
+                "Asset report exported successfully: "
+                f"{result.report_path.name}"
+            ),
+        )
 
     def _analyze_duplicates(self) -> None:
         """Analyze and display exact-content duplicates."""
