@@ -46,6 +46,12 @@ from aniccoli.organizer import (
     count_conflict_renames,
     execute_organization_plan,
 )
+from aniccoli.preferences import (
+    AppPreferences,
+    load_preferences,
+    save_preferences,
+    update_preferences,
+)
 from aniccoli.reports import (
     ReportFormat,
     export_asset_report,
@@ -112,7 +118,19 @@ class AniccoliApp(ctk.CTk):
         """Create and configure the application window."""
         super().__init__()
 
-        self.selected_folder: Optional[Path] = None
+        self.preferences: AppPreferences = load_preferences()
+
+        saved_project_path = self.preferences.last_project_path
+
+        self.selected_folder: Optional[Path] = (
+            saved_project_path.resolve()
+            if (
+                saved_project_path is not None
+                and saved_project_path.exists()
+                and saved_project_path.is_dir()
+            )
+            else None
+        )
 
         self.scanned_assets: list[AssetFile] = []
         self.filtered_assets: list[AssetFile] = []
@@ -140,7 +158,7 @@ class AniccoliApp(ctk.CTk):
         ] = {}
 
         self.recursive_scan_var = ctk.BooleanVar(
-            value=True,
+            value=self.preferences.recursive_scan,
         )
 
         self.search_var = ctk.StringVar(
@@ -187,18 +205,24 @@ class AniccoliApp(ctk.CTk):
 
         self.date_grouping_var = ctk.StringVar(
             value=str(
-                DateGrouping.NONE
+                self.preferences.date_grouping
             ),
         )
 
         self.date_source_var = ctk.StringVar(
             value=str(
-                DateSource.MODIFIED
+                self.preferences.date_source
             ),
         )
 
         self._configure_window()
         self._create_interface()
+        self._restore_saved_project_folder()
+
+        self.protocol(
+            "WM_DELETE_WINDOW",
+            self._on_close,
+        )
 
     def _configure_window(self) -> None:
         """Configure the main application window."""
@@ -399,6 +423,7 @@ class AniccoliApp(ctk.CTk):
             variable=self.recursive_scan_var,
             onvalue=True,
             offvalue=False,
+            command=self._on_recursive_scan_changed,
             font=ctk.CTkFont(
                 size=14,
             ),
@@ -1275,6 +1300,103 @@ class AniccoliApp(ctk.CTk):
             pady=10,
         )
 
+    def _save_current_preferences(self) -> None:
+        """Save the current persistent application settings."""
+        try:
+            current_options = self._build_organization_options()
+
+            self.preferences = update_preferences(
+                self.preferences,
+                recursive_scan=self.recursive_scan_var.get(),
+                date_grouping=current_options.date_grouping,
+                date_source=current_options.date_source,
+                last_project_folder=self.selected_folder,
+                clear_last_project_folder=(
+                    self.selected_folder is None
+                ),
+            )
+
+            save_preferences(
+                self.preferences
+            )
+        except (
+            PermissionError,
+            OSError,
+            TypeError,
+            ValueError,
+        ) as error:
+            if hasattr(
+                self,
+                "status_label",
+            ):
+                self.status_label.configure(
+                    text=(
+                        "Could not save preferences: "
+                        f"{error}"
+                    ),
+                )
+
+    def _restore_saved_project_folder(self) -> None:
+        """Restore the previous project folder without scanning it."""
+        options = self._build_organization_options()
+
+        self.date_source_menu.configure(
+            state=(
+                "normal"
+                if options.uses_date_grouping
+                else "disabled"
+            ),
+        )
+
+        if self.selected_folder is None:
+            if self.preferences.last_project_folder is not None:
+                self.preferences = update_preferences(
+                    self.preferences,
+                    clear_last_project_folder=True,
+                )
+
+                try:
+                    save_preferences(
+                        self.preferences
+                    )
+                except (
+                    PermissionError,
+                    OSError,
+                    TypeError,
+                    ValueError,
+                ):
+                    pass
+
+            return
+
+        self.selected_folder_label.configure(
+            text=str(
+                self.selected_folder
+            ),
+        )
+
+        self.scan_button.configure(
+            state="normal",
+        )
+
+        self.status_label.configure(
+            text=(
+                "Previous project folder restored. "
+                "Click Scan Folder to inspect its assets."
+            ),
+        )
+
+        self._refresh_undo_button()
+
+    def _on_recursive_scan_changed(self) -> None:
+        """Save the recursive-scan preference when it changes."""
+        self._save_current_preferences()
+
+    def _on_close(self) -> None:
+        """Save preferences before closing Aniccoli."""
+        self._save_current_preferences()
+        self.destroy()
+
     def _build_organization_options(
         self,
     ) -> OrganizationOptions:
@@ -1307,6 +1429,7 @@ class AniccoliApp(ctk.CTk):
         )
 
         self.organization_plan = []
+        self._save_current_preferences()
 
         if self.scanned_assets:
             self._display_assets()
@@ -1351,6 +1474,7 @@ class AniccoliApp(ctk.CTk):
             state="normal",
         )
 
+        self._save_current_preferences()
         self._reset_scan_results()
         self._refresh_undo_button()
 
