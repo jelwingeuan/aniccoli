@@ -22,6 +22,13 @@ from aniccoli.filters import (
     collect_available_extensions,
     filter_assets,
 )
+from aniccoli.folder_filter import (
+    FolderFilterOptions,
+    FolderMatchMode,
+    collect_available_folders,
+    filter_assets_by_folder,
+    folder_display_name,
+)
 from aniccoli.history import (
     NoUndoHistoryError,
     find_latest_undoable_log,
@@ -54,6 +61,7 @@ from aniccoli.scanner import (
 
 ALL_CATEGORIES = "All categories"
 ALL_EXTENSIONS = "All extensions"
+ALL_FOLDERS = "All folders"
 ANY_SIZE = "Any size"
 ANY_TIME = "Any time"
 
@@ -115,6 +123,16 @@ class AniccoliApp(ctk.CTk):
             ...,
         ] = ()
 
+        self.available_folders: tuple[
+            Path,
+            ...,
+        ] = ()
+
+        self.folder_display_lookup: dict[
+            str,
+            Path,
+        ] = {}
+
         self.recursive_scan_var = ctk.BooleanVar(
             value=True,
         )
@@ -137,6 +155,16 @@ class AniccoliApp(ctk.CTk):
 
         self.modified_filter_var = ctk.StringVar(
             value=ANY_TIME,
+        )
+
+        self.folder_filter_var = ctk.StringVar(
+            value=ALL_FOLDERS,
+        )
+
+        self.folder_match_mode_var = ctk.StringVar(
+            value=str(
+                FolderMatchMode.INCLUDE_SUBFOLDERS
+            ),
         )
 
         self.date_grouping_var = ctk.StringVar(
@@ -993,6 +1021,113 @@ class AniccoliApp(ctk.CTk):
             pady=12,
         )
 
+        folder_controls_frame = ctk.CTkFrame(
+            master=filter_frame,
+            fg_color="transparent",
+        )
+
+        folder_controls_frame.grid(
+            row=1,
+            column=0,
+            columnspan=6,
+            sticky="ew",
+            padx=12,
+            pady=(0, 12),
+        )
+
+        folder_controls_frame.grid_columnconfigure(
+            1,
+            weight=1,
+        )
+
+        folder_filter_label = ctk.CTkLabel(
+            master=folder_controls_frame,
+            text="Parent folder:",
+            font=ctk.CTkFont(
+                size=13,
+                weight="bold",
+            ),
+        )
+
+        folder_filter_label.grid(
+            row=0,
+            column=0,
+            padx=(0, 8),
+        )
+
+        self.folder_filter_menu = ctk.CTkOptionMenu(
+            master=folder_controls_frame,
+            variable=self.folder_filter_var,
+            values=[
+                ALL_FOLDERS,
+            ],
+            command=lambda _value: (
+                self._on_folder_filter_changed()
+            ),
+            height=36,
+        )
+
+        self.folder_filter_menu.grid(
+            row=0,
+            column=1,
+            sticky="ew",
+            padx=(0, 12),
+        )
+
+        folder_match_label = ctk.CTkLabel(
+            master=folder_controls_frame,
+            text="Match:",
+            font=ctk.CTkFont(
+                size=13,
+                weight="bold",
+            ),
+        )
+
+        folder_match_label.grid(
+            row=0,
+            column=2,
+            padx=(0, 8),
+        )
+
+        self.folder_match_mode_menu = ctk.CTkOptionMenu(
+            master=folder_controls_frame,
+            variable=self.folder_match_mode_var,
+            values=[
+                str(option)
+                for option in FolderMatchMode
+            ],
+            command=lambda _value: (
+                self._apply_filters()
+            ),
+            width=190,
+            height=36,
+            state="disabled",
+        )
+
+        self.folder_match_mode_menu.grid(
+            row=0,
+            column=3,
+            padx=(0, 12),
+        )
+
+        folder_filter_hint = ctk.CTkLabel(
+            master=folder_controls_frame,
+            text=(
+                "Filter the table by the asset's current "
+                "project folder."
+            ),
+            font=ctk.CTkFont(
+                size=12,
+            ),
+            anchor="w",
+        )
+
+        folder_filter_hint.grid(
+            row=0,
+            column=4,
+            sticky="w",
+        )
+
         clear_button = ctk.CTkButton(
             master=filter_frame,
             text="Clear Filters",
@@ -1207,7 +1342,7 @@ class AniccoliApp(ctk.CTk):
             self._refresh_undo_button()
 
     def _refresh_filter_options(self) -> None:
-        """Refresh category and extension choices."""
+        """Refresh category, extension, and folder choices."""
         self.available_categories = (
             collect_available_categories(
                 self.scanned_assets
@@ -1216,6 +1351,12 @@ class AniccoliApp(ctk.CTk):
 
         self.available_extensions = (
             collect_available_extensions(
+                self.scanned_assets
+            )
+        )
+
+        self.available_folders = (
+            collect_available_folders(
                 self.scanned_assets
             )
         )
@@ -1233,12 +1374,29 @@ class AniccoliApp(ctk.CTk):
             self.available_extensions
         )
 
+        self.folder_display_lookup = {
+            folder_display_name(
+                folder
+            ): folder
+            for folder in self.available_folders
+        }
+
+        folder_values = [
+            ALL_FOLDERS,
+        ] + list(
+            self.folder_display_lookup
+        )
+
         self.category_filter_menu.configure(
             values=category_values,
         )
 
         self.extension_filter_menu.configure(
             values=extension_values,
+        )
+
+        self.folder_filter_menu.configure(
+            values=folder_values,
         )
 
         if (
@@ -1256,6 +1414,23 @@ class AniccoliApp(ctk.CTk):
             self.extension_filter_var.set(
                 ALL_EXTENSIONS,
             )
+
+        if (
+            self.folder_filter_var.get()
+            not in folder_values
+        ):
+            self.folder_filter_var.set(
+                ALL_FOLDERS,
+            )
+
+        self.folder_match_mode_menu.configure(
+            state=(
+                "normal"
+                if self.folder_filter_var.get()
+                != ALL_FOLDERS
+                else "disabled"
+            ),
+        )
 
     def _reset_filter_controls(self) -> None:
         """Reset all filter controls."""
@@ -1279,10 +1454,60 @@ class AniccoliApp(ctk.CTk):
             ANY_TIME,
         )
 
+        self.folder_filter_var.set(
+            ALL_FOLDERS,
+        )
+
+        self.folder_match_mode_var.set(
+            str(
+                FolderMatchMode.INCLUDE_SUBFOLDERS
+            ),
+        )
+
+        self.folder_match_mode_menu.configure(
+            state="disabled",
+        )
+
     def _clear_filters(self) -> None:
         """Clear all active filters."""
         self._reset_filter_controls()
         self._apply_filters()
+
+    def _on_folder_filter_changed(
+        self,
+    ) -> None:
+        """Enable folder matching options and refresh visible assets."""
+        self.folder_match_mode_menu.configure(
+            state=(
+                "normal"
+                if self.folder_filter_var.get()
+                != ALL_FOLDERS
+                else "disabled"
+            ),
+        )
+
+        self._apply_filters()
+
+    def _build_folder_filter(
+        self,
+    ) -> FolderFilterOptions:
+        """Build parent-folder filtering options from the controls."""
+        selected_display_name = (
+            self.folder_filter_var.get()
+        )
+
+        selected_folder = (
+            self.folder_display_lookup.get(
+                selected_display_name
+            )
+        )
+
+        return FolderFilterOptions(
+            folder=selected_folder,
+            match_mode=FolderMatchMode(
+                self.folder_match_mode_var.get()
+            ),
+        )
 
     def _build_asset_filter(self) -> AssetFilter:
         """Build an AssetFilter from the interface controls."""
@@ -1359,6 +1584,13 @@ class AniccoliApp(ctk.CTk):
                 self.scanned_assets,
                 self._build_asset_filter(),
             )
+
+            folder_filtered_assets = (
+                filter_assets_by_folder(
+                    result.matched_assets,
+                    self._build_folder_filter(),
+                )
+            )
         except ValueError as error:
             self.status_label.configure(
                 text=f"Filter error: {error}",
@@ -1366,12 +1598,16 @@ class AniccoliApp(ctk.CTk):
             return
 
         self.filtered_assets = list(
-            result.matched_assets
+            folder_filtered_assets
+        )
+
+        visible_count = len(
+            self.filtered_assets
         )
 
         self.filter_count_label.configure(
             text=(
-                f"Showing {result.matched_count} "
+                f"Showing {visible_count} "
                 f"of {result.total_count} files"
             ),
         )
@@ -1429,6 +1665,8 @@ class AniccoliApp(ctk.CTk):
 
         self.available_categories = ()
         self.available_extensions = ()
+        self.available_folders = ()
+        self.folder_display_lookup = {}
 
         self.category_filter_menu.configure(
             values=[
@@ -1439,6 +1677,12 @@ class AniccoliApp(ctk.CTk):
         self.extension_filter_menu.configure(
             values=[
                 ALL_EXTENSIONS,
+            ],
+        )
+
+        self.folder_filter_menu.configure(
+            values=[
+                ALL_FOLDERS,
             ],
         )
 
