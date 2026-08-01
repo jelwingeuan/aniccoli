@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable
 
 from aniccoli.scanner import (
     AssetFile,
@@ -79,6 +79,9 @@ class AssetStatistics:
         )
 
 
+GroupNameGetter = Callable[[AssetFile], str]
+
+
 def _folder_name(
     asset: AssetFile,
 ) -> str:
@@ -96,7 +99,7 @@ def _folder_name(
 def _build_groups(
     assets: Iterable[AssetFile],
     *,
-    group_name,
+    group_name: GroupNameGetter,
 ) -> tuple[StatisticsGroup, ...]:
     """Group assets by a selected text value."""
     grouped_counts: dict[str, int] = defaultdict(
@@ -108,10 +111,8 @@ def _build_groups(
     )
 
     for asset in assets:
-        name = str(
-            group_name(
-                asset
-            )
+        name = group_name(
+            asset
         )
 
         grouped_counts[name] += 1

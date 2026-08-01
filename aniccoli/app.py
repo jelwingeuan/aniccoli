@@ -69,6 +69,8 @@ from aniccoli.sorting import (
     SortField,
     sort_assets,
 )
+from aniccoli.statistics import build_asset_statistics
+from aniccoli.statistics_window import AssetStatisticsWindow
 
 
 ALL_CATEGORIES = "All categories"
@@ -663,6 +665,26 @@ class AniccoliApp(ctk.CTk):
         self.export_button.grid(
             row=0,
             column=6,
+            padx=(0, 8),
+            pady=12,
+        )
+
+        self.statistics_button = ctk.CTkButton(
+            master=organization_settings_frame,
+            text="Project Statistics",
+            command=self._open_project_statistics,
+            width=145,
+            height=36,
+            state="disabled",
+            font=ctk.CTkFont(
+                size=13,
+                weight="bold",
+            ),
+        )
+
+        self.statistics_button.grid(
+            row=0,
+            column=7,
             padx=(0, 15),
             pady=12,
         )
@@ -1503,6 +1525,10 @@ class AniccoliApp(ctk.CTk):
             state="disabled",
         )
 
+        self.statistics_button.configure(
+            state="disabled",
+        )
+
         self.status_label.configure(
             text="Scanning the selected folder...",
         )
@@ -1562,6 +1588,10 @@ class AniccoliApp(ctk.CTk):
                 )
 
                 self.export_button.configure(
+                    state="normal",
+                )
+
+                self.statistics_button.configure(
                     state="normal",
                 )
         finally:
@@ -1928,6 +1958,10 @@ class AniccoliApp(ctk.CTk):
             state="disabled",
         )
 
+        self.statistics_button.configure(
+            state="disabled",
+        )
+
         self.available_categories = ()
         self.available_extensions = ()
         self.available_folders = ()
@@ -2111,6 +2145,65 @@ class AniccoliApp(ctk.CTk):
                 padx=12,
                 pady=10,
             )
+
+    def _open_project_statistics(self) -> None:
+        """Calculate and display statistics for all scanned assets."""
+        if not self.scanned_assets:
+            self.status_label.configure(
+                text="Scan a folder before opening project statistics.",
+            )
+            return
+
+        self.statistics_button.configure(
+            state="disabled",
+            text="Calculating...",
+        )
+
+        self.status_label.configure(
+            text="Calculating project statistics...",
+        )
+
+        self.update_idletasks()
+
+        try:
+            statistics = build_asset_statistics(
+                self.scanned_assets,
+                largest_limit=20,
+                recent_limit=20,
+            )
+        except ValueError as error:
+            messagebox.showerror(
+                title="Statistics Failed",
+                message=str(error),
+                parent=self,
+            )
+
+            self.status_label.configure(
+                text=f"Statistics failed: {error}",
+            )
+            return
+        finally:
+            self.statistics_button.configure(
+                state=(
+                    "normal"
+                    if self.scanned_assets
+                    else "disabled"
+                ),
+                text="Project Statistics",
+            )
+
+        AssetStatisticsWindow(
+            master=self,
+            statistics=statistics,
+        )
+
+        self.status_label.configure(
+            text=(
+                "Project statistics opened for "
+                f"{statistics.total_assets} asset"
+                f"{'' if statistics.total_assets == 1 else 's'}."
+            ),
+        )
 
     def _export_inventory_report(self) -> None:
         """Export all scanned assets as a JSON or CSV inventory report."""
