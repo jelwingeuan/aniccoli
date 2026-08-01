@@ -57,6 +57,12 @@ from aniccoli.scanner import (
     scan_folder,
     summarize_assets,
 )
+from aniccoli.sorting import (
+    AssetSortOptions,
+    SortDirection,
+    SortField,
+    sort_assets,
+)
 
 
 ALL_CATEGORIES = "All categories"
@@ -164,6 +170,18 @@ class AniccoliApp(ctk.CTk):
         self.folder_match_mode_var = ctk.StringVar(
             value=str(
                 FolderMatchMode.INCLUDE_SUBFOLDERS
+            ),
+        )
+
+        self.sort_field_var = ctk.StringVar(
+            value=str(
+                SortField.NAME
+            ),
+        )
+
+        self.sort_direction_var = ctk.StringVar(
+            value=str(
+                SortDirection.ASCENDING
             ),
         )
 
@@ -1128,6 +1146,95 @@ class AniccoliApp(ctk.CTk):
             sticky="w",
         )
 
+        sort_field_label = ctk.CTkLabel(
+            master=folder_controls_frame,
+            text="Sort by:",
+            font=ctk.CTkFont(
+                size=13,
+                weight="bold",
+            ),
+        )
+
+        sort_field_label.grid(
+            row=1,
+            column=0,
+            padx=(0, 8),
+            pady=(10, 0),
+        )
+
+        self.sort_field_menu = ctk.CTkOptionMenu(
+            master=folder_controls_frame,
+            variable=self.sort_field_var,
+            values=[
+                str(option)
+                for option in SortField
+            ],
+            command=lambda _value: (
+                self._apply_filters()
+            ),
+            height=36,
+        )
+
+        self.sort_field_menu.grid(
+            row=1,
+            column=1,
+            sticky="ew",
+            padx=(0, 12),
+            pady=(10, 0),
+        )
+
+        sort_direction_label = ctk.CTkLabel(
+            master=folder_controls_frame,
+            text="Direction:",
+            font=ctk.CTkFont(
+                size=13,
+                weight="bold",
+            ),
+        )
+
+        sort_direction_label.grid(
+            row=1,
+            column=2,
+            padx=(0, 8),
+            pady=(10, 0),
+        )
+
+        self.sort_direction_menu = ctk.CTkOptionMenu(
+            master=folder_controls_frame,
+            variable=self.sort_direction_var,
+            values=[
+                str(option)
+                for option in SortDirection
+            ],
+            command=lambda _value: (
+                self._apply_filters()
+            ),
+            width=190,
+            height=36,
+        )
+
+        self.sort_direction_menu.grid(
+            row=1,
+            column=3,
+            padx=(0, 12),
+            pady=(10, 0),
+        )
+
+        reset_sort_button = ctk.CTkButton(
+            master=folder_controls_frame,
+            text="Reset Sort",
+            command=self._reset_sort,
+            width=115,
+            height=36,
+        )
+
+        reset_sort_button.grid(
+            row=1,
+            column=4,
+            sticky="w",
+            pady=(10, 0),
+        )
+
         clear_button = ctk.CTkButton(
             master=filter_frame,
             text="Clear Filters",
@@ -1509,6 +1616,35 @@ class AniccoliApp(ctk.CTk):
             ),
         )
 
+    def _reset_sort(self) -> None:
+        """Restore filename sorting in ascending order."""
+        self.sort_field_var.set(
+            str(
+                SortField.NAME
+            ),
+        )
+
+        self.sort_direction_var.set(
+            str(
+                SortDirection.ASCENDING
+            ),
+        )
+
+        self._apply_filters()
+
+    def _build_sort_options(
+        self,
+    ) -> AssetSortOptions:
+        """Build asset-sorting options from the controls."""
+        return AssetSortOptions(
+            field=SortField(
+                self.sort_field_var.get()
+            ),
+            direction=SortDirection(
+                self.sort_direction_var.get()
+            ),
+        )
+
     def _build_asset_filter(self) -> AssetFilter:
         """Build an AssetFilter from the interface controls."""
         selected_category_text = (
@@ -1591,6 +1727,11 @@ class AniccoliApp(ctk.CTk):
                     self._build_folder_filter(),
                 )
             )
+
+            sorted_assets = sort_assets(
+                folder_filtered_assets,
+                self._build_sort_options(),
+            )
         except ValueError as error:
             self.status_label.configure(
                 text=f"Filter error: {error}",
@@ -1598,7 +1739,7 @@ class AniccoliApp(ctk.CTk):
             return
 
         self.filtered_assets = list(
-            folder_filtered_assets
+            sorted_assets
         )
 
         visible_count = len(
