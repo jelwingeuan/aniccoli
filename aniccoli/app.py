@@ -18,6 +18,7 @@ from aniccoli.duplicates import (
     count_duplicate_copies,
     find_duplicate_groups,
 )
+from aniccoli.file_actions import reveal_in_file_manager
 from aniccoli.filters import (
     AssetFilter,
     collect_available_categories,
@@ -938,11 +939,17 @@ class AniccoliApp(ctk.CTk):
             weight=2,
         )
 
+        results_header.grid_columnconfigure(
+            4,
+            weight=0,
+        )
+
         headings = (
             "File",
             "Category",
             "Size",
             "Planned folder",
+            "Action",
         )
 
         for column, heading in enumerate(
@@ -2138,6 +2145,11 @@ class AniccoliApp(ctk.CTk):
             weight=2,
         )
 
+        row_frame.grid_columnconfigure(
+            4,
+            weight=0,
+        )
+
         planned_destination = (
             build_destination_folder(
                 asset=asset,
@@ -2180,6 +2192,59 @@ class AniccoliApp(ctk.CTk):
                 padx=12,
                 pady=10,
             )
+
+        reveal_button = ctk.CTkButton(
+            master=row_frame,
+            text="Reveal",
+            command=lambda selected_asset=asset: (
+                self._reveal_asset_in_file_manager(
+                    selected_asset
+                )
+            ),
+            width=80,
+            height=30,
+            font=ctk.CTkFont(
+                size=12,
+            ),
+        )
+
+        reveal_button.grid(
+            row=0,
+            column=4,
+            padx=(6, 12),
+            pady=8,
+        )
+
+    def _reveal_asset_in_file_manager(
+        self,
+        asset: AssetFile,
+    ) -> None:
+        """Reveal a scanned asset in Finder or the system file manager."""
+        try:
+            revealed_path = reveal_in_file_manager(
+                asset.source_path
+            )
+        except (
+            FileNotFoundError,
+            OSError,
+        ) as error:
+            messagebox.showerror(
+                title="Cannot Reveal Asset",
+                message=str(error),
+                parent=self,
+            )
+
+            self.status_label.configure(
+                text=f"Could not reveal asset: {error}",
+            )
+            return
+
+        self.status_label.configure(
+            text=(
+                "Revealed asset in the system file manager: "
+                f"{revealed_path.name}"
+            ),
+        )
 
     def _open_asset_health_audit(self) -> None:
         """Audit all scanned assets and display detected health issues."""
