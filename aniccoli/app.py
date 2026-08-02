@@ -9,6 +9,8 @@ from typing import Optional
 
 import customtkinter as ctk
 
+from aniccoli.audit import audit_assets
+from aniccoli.audit_window import AssetAuditWindow
 from aniccoli.categories import AssetCategory
 from aniccoli.duplicate_window import DuplicateResultsWindow
 from aniccoli.duplicates import (
@@ -687,6 +689,27 @@ class AniccoliApp(ctk.CTk):
             column=7,
             padx=(0, 15),
             pady=12,
+        )
+
+        self.audit_button = ctk.CTkButton(
+            master=organization_settings_frame,
+            text="Asset Health",
+            command=self._open_asset_health_audit,
+            width=125,
+            height=36,
+            state="disabled",
+            font=ctk.CTkFont(
+                size=13,
+                weight="bold",
+            ),
+        )
+
+        self.audit_button.grid(
+            row=1,
+            column=7,
+            sticky="e",
+            padx=(0, 15),
+            pady=(0, 12),
         )
 
         self.status_label = ctk.CTkLabel(
@@ -1529,6 +1552,10 @@ class AniccoliApp(ctk.CTk):
             state="disabled",
         )
 
+        self.audit_button.configure(
+            state="disabled",
+        )
+
         self.status_label.configure(
             text="Scanning the selected folder...",
         )
@@ -1592,6 +1619,10 @@ class AniccoliApp(ctk.CTk):
                 )
 
                 self.statistics_button.configure(
+                    state="normal",
+                )
+
+                self.audit_button.configure(
                     state="normal",
                 )
         finally:
@@ -1962,6 +1993,10 @@ class AniccoliApp(ctk.CTk):
             state="disabled",
         )
 
+        self.audit_button.configure(
+            state="disabled",
+        )
+
         self.available_categories = ()
         self.available_extensions = ()
         self.available_folders = ()
@@ -2145,6 +2180,75 @@ class AniccoliApp(ctk.CTk):
                 padx=12,
                 pady=10,
             )
+
+    def _open_asset_health_audit(self) -> None:
+        """Audit all scanned assets and display detected health issues."""
+        if not self.scanned_assets:
+            self.status_label.configure(
+                text="Scan a folder before opening Asset Health.",
+            )
+            return
+
+        self.audit_button.configure(
+            state="disabled",
+            text="Auditing...",
+        )
+
+        self.status_label.configure(
+            text="Checking the scanned project for asset health issues...",
+        )
+
+        self.update_idletasks()
+
+        try:
+            report = audit_assets(
+                self.scanned_assets,
+                large_file_threshold_bytes=500 * 1024**2,
+                stale_after_days=365,
+            )
+        except ValueError as error:
+            messagebox.showerror(
+                title="Asset Audit Failed",
+                message=str(error),
+                parent=self,
+            )
+
+            self.status_label.configure(
+                text=f"Asset audit failed: {error}",
+            )
+            return
+        finally:
+            self.audit_button.configure(
+                state=(
+                    "normal"
+                    if self.scanned_assets
+                    else "disabled"
+                ),
+                text="Asset Health",
+            )
+
+        AssetAuditWindow(
+            master=self,
+            report=report,
+        )
+
+        if report.is_healthy:
+            status_text = (
+                "Asset Health found no issues in "
+                f"{report.scanned_asset_count} asset"
+                f"{'' if report.scanned_asset_count == 1 else 's'}."
+            )
+        else:
+            status_text = (
+                "Asset Health found "
+                f"{report.issue_count} issue"
+                f"{'' if report.issue_count == 1 else 's'} "
+                f"across {report.scanned_asset_count} scanned assets."
+            )
+
+        self.status_label.configure(
+            text=status_text,
+        )
 
     def _open_project_statistics(self) -> None:
         """Calculate and display statistics for all scanned assets."""
