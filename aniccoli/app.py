@@ -66,6 +66,13 @@ from aniccoli.scanner import (
     scan_folder,
     summarize_assets,
 )
+from aniccoli.selection import (
+    AssetSelection,
+    clear_asset_selection,
+    select_all_assets,
+    selected_assets,
+    summarize_selection,
+)
 from aniccoli.sorting import (
     AssetSortOptions,
     SortDirection,
@@ -141,6 +148,8 @@ class AniccoliApp(ctk.CTk):
         self.filtered_assets: list[AssetFile] = []
         self.organization_plan: list[PlannedMove] = []
         self.duplicate_groups: list[DuplicateGroup] = []
+
+        self.asset_selection = AssetSelection()
 
         self.available_categories: tuple[
             AssetCategory,
@@ -921,30 +930,36 @@ class AniccoliApp(ctk.CTk):
 
         results_header.grid_columnconfigure(
             0,
-            weight=3,
+            weight=0,
         )
 
         results_header.grid_columnconfigure(
             1,
-            weight=2,
+            weight=3,
         )
 
         results_header.grid_columnconfigure(
             2,
-            weight=1,
-        )
-
-        results_header.grid_columnconfigure(
-            3,
             weight=2,
         )
 
         results_header.grid_columnconfigure(
+            3,
+            weight=1,
+        )
+
+        results_header.grid_columnconfigure(
             4,
+            weight=2,
+        )
+
+        results_header.grid_columnconfigure(
+            5,
             weight=0,
         )
 
         headings = (
+            "Use",
             "File",
             "Category",
             "Size",
@@ -1312,6 +1327,84 @@ class AniccoliApp(ctk.CTk):
             pady=(10, 0),
         )
 
+        selection_label = ctk.CTkLabel(
+            master=folder_controls_frame,
+            text="Asset selection:",
+            font=ctk.CTkFont(
+                size=13,
+                weight="bold",
+            ),
+        )
+
+        selection_label.grid(
+            row=2,
+            column=0,
+            padx=(0, 8),
+            pady=(10, 0),
+        )
+
+        self.selection_count_label = ctk.CTkLabel(
+            master=folder_controls_frame,
+            text="0 of 0 selected",
+            font=ctk.CTkFont(
+                size=13,
+            ),
+            anchor="w",
+        )
+
+        self.selection_count_label.grid(
+            row=2,
+            column=1,
+            sticky="w",
+            padx=(0, 12),
+            pady=(10, 0),
+        )
+
+        select_visible_button = ctk.CTkButton(
+            master=folder_controls_frame,
+            text="Select Visible",
+            command=self._select_visible_assets,
+            width=125,
+            height=36,
+        )
+
+        select_visible_button.grid(
+            row=2,
+            column=2,
+            padx=(0, 8),
+            pady=(10, 0),
+        )
+
+        invert_visible_button = ctk.CTkButton(
+            master=folder_controls_frame,
+            text="Invert Visible",
+            command=self._invert_visible_selection,
+            width=125,
+            height=36,
+        )
+
+        invert_visible_button.grid(
+            row=2,
+            column=3,
+            padx=(0, 8),
+            pady=(10, 0),
+        )
+
+        clear_selection_button = ctk.CTkButton(
+            master=folder_controls_frame,
+            text="Clear Selection",
+            command=self._clear_asset_selection,
+            width=130,
+            height=36,
+        )
+
+        clear_selection_button.grid(
+            row=2,
+            column=4,
+            sticky="w",
+            pady=(10, 0),
+        )
+
         clear_button = ctk.CTkButton(
             master=filter_frame,
             text="Clear Filters",
@@ -1585,6 +1678,7 @@ class AniccoliApp(ctk.CTk):
             self.filtered_assets = []
             self.organization_plan = []
             self.duplicate_groups = []
+            self.asset_selection = clear_asset_selection()
 
             self.status_label.configure(
                 text=f"Scan failed: {error}",
@@ -1595,10 +1689,14 @@ class AniccoliApp(ctk.CTk):
         else:
             self.organization_plan = []
             self.duplicate_groups = []
+            self.asset_selection = select_all_assets(
+                self.scanned_assets
+            )
 
             self._refresh_filter_options()
             self._reset_filter_controls()
             self._display_assets()
+            self._update_selection_summary()
 
             file_count = len(
                 self.scanned_assets
@@ -1613,15 +1711,7 @@ class AniccoliApp(ctk.CTk):
             )
 
             if self.scanned_assets:
-                self.preview_button.configure(
-                    state="normal",
-                )
-
                 self.duplicate_button.configure(
-                    state="normal",
-                )
-
-                self.export_button.configure(
                     state="normal",
                 )
 
@@ -1824,6 +1914,101 @@ class AniccoliApp(ctk.CTk):
 
         self._apply_filters()
 
+    def _update_selection_summary(self) -> None:
+        """Refresh selection counts and selection-dependent actions."""
+        summary = summarize_selection(
+            self.scanned_assets,
+            self.asset_selection,
+        )
+
+        self.selection_count_label.configure(
+            text=(
+                f"{summary.selected_assets} "
+                f"of {summary.total_assets} selected"
+            ),
+        )
+
+        action_state = (
+            "normal"
+            if summary.has_selection
+            else "disabled"
+        )
+
+        self.preview_button.configure(
+            state=action_state,
+        )
+
+        self.export_button.configure(
+            state=action_state,
+        )
+
+    def _select_visible_assets(self) -> None:
+        """Add every currently visible asset to the selection."""
+        if not self.filtered_assets:
+            return
+
+        visible_selection = select_all_assets(
+            self.filtered_assets
+        )
+
+        self.asset_selection = AssetSelection(
+            selected_paths=(
+                self.asset_selection.selected_paths
+                | visible_selection.selected_paths
+            )
+        )
+
+        self._apply_filters()
+
+    def _invert_visible_selection(self) -> None:
+        """Invert selection only for assets visible in the table."""
+        if not self.filtered_assets:
+            return
+
+        visible_selection = select_all_assets(
+            self.filtered_assets
+        )
+
+        self.asset_selection = AssetSelection(
+            selected_paths=(
+                self.asset_selection.selected_paths
+                ^ visible_selection.selected_paths
+            )
+        )
+
+        self._apply_filters()
+
+    def _clear_asset_selection(self) -> None:
+        """Clear every selected asset."""
+        self.asset_selection = clear_asset_selection()
+        self._apply_filters()
+
+    def _set_asset_selected(
+        self,
+        asset: AssetFile,
+        selected: bool,
+    ) -> None:
+        """Set the selection state of one scanned asset."""
+        if selected:
+            self.asset_selection = self.asset_selection.select(
+                asset
+            )
+        else:
+            self.asset_selection = self.asset_selection.deselect(
+                asset
+            )
+
+        self._update_selection_summary()
+
+    def _selected_assets_for_action(
+        self,
+    ) -> tuple[AssetFile, ...]:
+        """Return selected assets in their original scan order."""
+        return selected_assets(
+            self.scanned_assets,
+            self.asset_selection,
+        )
+
     def _build_sort_options(
         self,
     ) -> AssetSortOptions:
@@ -1905,6 +2090,8 @@ class AniccoliApp(ctk.CTk):
             self.filter_count_label.configure(
                 text="Showing 0 of 0 files",
             )
+
+            self._update_selection_summary()
             return
 
         try:
@@ -1945,6 +2132,7 @@ class AniccoliApp(ctk.CTk):
             ),
         )
 
+        self._update_selection_summary()
         self._clear_result_rows()
 
         if not self.filtered_assets:
@@ -1967,6 +2155,7 @@ class AniccoliApp(ctk.CTk):
         self.filtered_assets = []
         self.organization_plan = []
         self.duplicate_groups = []
+        self.asset_selection = clear_asset_selection()
 
         self.files_count_label.configure(
             text="0",
@@ -1982,6 +2171,10 @@ class AniccoliApp(ctk.CTk):
 
         self.filter_count_label.configure(
             text="Showing 0 of 0 files",
+        )
+
+        self.selection_count_label.configure(
+            text="0 of 0 selected",
         )
 
         self.preview_button.configure(
@@ -2127,27 +2320,58 @@ class AniccoliApp(ctk.CTk):
 
         row_frame.grid_columnconfigure(
             0,
-            weight=3,
+            weight=0,
         )
 
         row_frame.grid_columnconfigure(
             1,
-            weight=2,
+            weight=3,
         )
 
         row_frame.grid_columnconfigure(
             2,
-            weight=1,
-        )
-
-        row_frame.grid_columnconfigure(
-            3,
             weight=2,
         )
 
         row_frame.grid_columnconfigure(
+            3,
+            weight=1,
+        )
+
+        row_frame.grid_columnconfigure(
             4,
+            weight=2,
+        )
+
+        row_frame.grid_columnconfigure(
+            5,
             weight=0,
+        )
+
+        selection_var = ctk.BooleanVar(
+            value=self.asset_selection.contains(
+                asset
+            ),
+        )
+
+        selection_checkbox = ctk.CTkCheckBox(
+            master=row_frame,
+            text="",
+            variable=selection_var,
+            onvalue=True,
+            offvalue=False,
+            width=24,
+            command=lambda: self._set_asset_selected(
+                asset,
+                selection_var.get(),
+            ),
+        )
+
+        selection_checkbox.grid(
+            row=0,
+            column=0,
+            padx=(12, 4),
+            pady=10,
         )
 
         planned_destination = (
@@ -2173,7 +2397,8 @@ class AniccoliApp(ctk.CTk):
         )
 
         for column, value in enumerate(
-            values
+            values,
+            start=1,
         ):
             value_label = ctk.CTkLabel(
                 master=row_frame,
@@ -2210,7 +2435,7 @@ class AniccoliApp(ctk.CTk):
 
         reveal_button.grid(
             row=0,
-            column=4,
+            column=5,
             padx=(6, 12),
             pady=8,
         )
@@ -2376,12 +2601,22 @@ class AniccoliApp(ctk.CTk):
 
     def _export_inventory_report(self) -> None:
         """Export all scanned assets as a JSON or CSV inventory report."""
+        selected_asset_records = (
+            self._selected_assets_for_action()
+        )
+
         if (
             self.selected_folder is None
             or not self.scanned_assets
         ):
             self.status_label.configure(
                 text="Scan a folder before exporting a report.",
+            )
+            return
+
+        if not selected_asset_records:
+            self.status_label.configure(
+                text="Select at least one asset before exporting.",
             )
             return
 
@@ -2432,7 +2667,7 @@ class AniccoliApp(ctk.CTk):
         try:
             result = export_asset_report(
                 output_path=output_path,
-                assets=self.scanned_assets,
+                assets=selected_asset_records,
                 project_folder=self.selected_folder,
                 options=self._build_organization_options(),
                 report_format=report_format,
@@ -2592,11 +2827,24 @@ class AniccoliApp(ctk.CTk):
             )
             return
 
+        selected_asset_records = (
+            self._selected_assets_for_action()
+        )
+
+        if not selected_asset_records:
+            self.status_label.configure(
+                text=(
+                    "Select at least one asset before "
+                    "creating an organization preview."
+                ),
+            )
+            return
+
         try:
             self.organization_plan = (
                 build_organization_plan(
                     project_folder=self.selected_folder,
-                    assets=self.scanned_assets,
+                    assets=selected_asset_records,
                     options=(
                         self._build_organization_options()
                     ),
