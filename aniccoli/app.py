@@ -2811,7 +2811,25 @@ class AniccoliApp(ctk.CTk):
         DuplicateResultsWindow(
             master=self,
             duplicate_groups=self.duplicate_groups,
+            project_folder=self.selected_folder,
+            on_project_changed=(
+                self._refresh_after_duplicate_cleanup
+            ),
         )
+
+    def _refresh_after_duplicate_cleanup(self) -> None:
+        """Rescan the project after duplicate files move or return."""
+        if self.selected_folder is None:
+            return
+
+        self.status_label.configure(
+            text=(
+                "Duplicate cleanup changed the project. "
+                "Refreshing the scan..."
+            ),
+        )
+
+        self._scan_selected_folder()
 
     def _preview_organization(self) -> None:
         """Build and display the organization preview."""
