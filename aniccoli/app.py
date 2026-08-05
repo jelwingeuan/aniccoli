@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from pathlib import Path
+import sys
 from tkinter import filedialog, messagebox
 from typing import Optional
 
 import customtkinter as ctk
 
+from aniccoli.about_window import AboutWindow
 from aniccoli.audit import audit_assets
 from aniccoli.audit_window import AssetAuditWindow
 from aniccoli.categories import AssetCategory
@@ -82,6 +84,9 @@ from aniccoli.sorting import (
 from aniccoli.statistics import build_asset_statistics
 from aniccoli.statistics_window import AssetStatisticsWindow
 
+
+APP_NAME = "Aniccoli"
+APP_VERSION = "1.0.0"
 
 ALL_CATEGORIES = "All categories"
 ALL_EXTENSIONS = "All extensions"
@@ -231,6 +236,7 @@ class AniccoliApp(ctk.CTk):
 
         self._configure_window()
         self._create_interface()
+        self._bind_keyboard_shortcuts()
         self._restore_saved_project_folder()
 
         self.protocol(
@@ -240,7 +246,7 @@ class AniccoliApp(ctk.CTk):
 
     def _configure_window(self) -> None:
         """Configure the main application window."""
-        self.title("Aniccoli")
+        self.title(f"{APP_NAME} {APP_VERSION}")
         self.geometry("1440x900")
         self.minsize(1120, 760)
 
@@ -351,6 +357,35 @@ class AniccoliApp(ctk.CTk):
             row=1,
             column=1,
             sticky="w",
+        )
+
+        version_label = ctk.CTkLabel(
+            master=header_frame,
+            text=f"v{APP_VERSION}",
+            font=ctk.CTkFont(
+                size=12,
+            ),
+        )
+
+        version_label.grid(
+            row=0,
+            column=2,
+            padx=(15, 8),
+        )
+
+        help_button = ctk.CTkButton(
+            master=header_frame,
+            text="Help",
+            command=self._open_about_window,
+            width=90,
+            height=36,
+        )
+
+        help_button.grid(
+            row=0,
+            column=3,
+            rowspan=2,
+            padx=(0, 2),
         )
 
     def _create_folder_controls(self) -> None:
@@ -1443,6 +1478,118 @@ class AniccoliApp(ctk.CTk):
             sticky="ew",
             padx=12,
             pady=10,
+        )
+
+    @property
+    def _shortcut_modifier_label(self) -> str:
+        """Return the platform's readable primary shortcut key."""
+        return (
+            "Command"
+            if sys.platform == "darwin"
+            else "Ctrl"
+        )
+
+    def _bind_keyboard_shortcuts(self) -> None:
+        """Bind cross-platform shortcuts for common Aniccoli actions."""
+        primary_prefix = (
+            "Command"
+            if sys.platform == "darwin"
+            else "Control"
+        )
+
+        self.bind_all(
+            f"<{primary_prefix}-o>",
+            self._shortcut_choose_folder,
+        )
+
+        self.bind_all(
+            f"<{primary_prefix}-r>",
+            self._shortcut_scan_folder,
+        )
+
+        self.bind_all(
+            f"<{primary_prefix}-f>",
+            self._shortcut_focus_search,
+        )
+
+        self.bind_all(
+            f"<{primary_prefix}-Shift-A>",
+            self._shortcut_select_visible,
+        )
+
+        self.bind_all(
+            f"<{primary_prefix}-Shift-C>",
+            self._shortcut_clear_selection,
+        )
+
+        self.bind_all(
+            "<F1>",
+            self._shortcut_open_help,
+        )
+
+    def _shortcut_choose_folder(
+        self,
+        _event: object | None = None,
+    ) -> str:
+        """Open the project-folder chooser from a keyboard shortcut."""
+        self._select_folder()
+        return "break"
+
+    def _shortcut_scan_folder(
+        self,
+        _event: object | None = None,
+    ) -> str:
+        """Scan the selected folder from a keyboard shortcut."""
+        if self.selected_folder is not None:
+            self._scan_selected_folder()
+
+        return "break"
+
+    def _shortcut_focus_search(
+        self,
+        _event: object | None = None,
+    ) -> str:
+        """Focus and select the asset-search field."""
+        self.search_entry.focus_set()
+        self.search_entry.select_range(
+            0,
+            "end",
+        )
+
+        return "break"
+
+    def _shortcut_select_visible(
+        self,
+        _event: object | None = None,
+    ) -> str:
+        """Select every visible asset from a keyboard shortcut."""
+        self._select_visible_assets()
+        return "break"
+
+    def _shortcut_clear_selection(
+        self,
+        _event: object | None = None,
+    ) -> str:
+        """Clear the asset selection from a keyboard shortcut."""
+        self._clear_asset_selection()
+        return "break"
+
+    def _shortcut_open_help(
+        self,
+        _event: object | None = None,
+    ) -> str:
+        """Open the help window from a keyboard shortcut."""
+        self._open_about_window()
+        return "break"
+
+    def _open_about_window(self) -> None:
+        """Open Aniccoli help and application information."""
+        AboutWindow(
+            master=self,
+            version=APP_VERSION,
+            shortcut_modifier=(
+                self._shortcut_modifier_label
+            ),
         )
 
     def _save_current_preferences(self) -> None:
