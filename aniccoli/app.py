@@ -375,9 +375,9 @@ ctk.CTkScrollableFrame = NaturalScrollableFrame
 
 
 APP_NAME = "Aniccoli"
-APP_VERSION = "0.9.0-beta"
+APP_VERSION = "1.0.0"
 
-APP_STAGE = "BETA"
+APP_STAGE = "RELEASE"
 
 APP_BACKGROUND = ("#F3F6F4", "#101512")
 SIDEBAR_BACKGROUND = ("#E9F0EB", "#151C18")
