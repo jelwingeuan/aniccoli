@@ -1,324 +1,239 @@
-# 🥦 Aniccoli
+# Aniccoli
 
-**Keep your 3D projects fresh, clean, and organized.**
+Aniccoli is a beginner-friendly desktop application for organizing 3D project assets.
 
-Aniccoli is a beginner-friendly Python desktop application designed to help 3D artists, animators, students, and game developers organize messy production folders.
+It scans a project folder, identifies common asset types, previews a safe organization plan, detects duplicate files, exports reports, and keeps restoration history for file-moving operations.
 
-The application scans a selected folder, detects different asset types, and sorts Blender, Maya, Unity, texture, reference, render, audio, document, and archive files into a clean project structure.
+## Version
 
-## About the Project
+Current development version:
 
-3D projects can quickly become difficult to manage when models, textures, references, renders, and project files are stored in the same folder.
-
-Aniccoli helps solve this problem by automatically identifying files and organizing them into suitable folders based on:
-
-* File extension
-* Software type
-* Asset category
-* Texture type
-* Creation or modification date
-
-The goal is to reduce the time spent searching for files and help users maintain a cleaner and more consistent production workflow.
+```text
+1.0.0
+```
 
 ## Main Features
 
-* Select and scan a project folder
-* Detect supported 3D production files
-* Organize Blender and Maya project files
-* Organize Unity scenes, prefabs, materials, animations, and scripts
-* Sort 3D model formats such as FBX, OBJ, GLTF, GLB, and STL
-* Detect texture types using file names
-* Organize references, renders, audio, documents, videos, and archives
-* Preview planned file movements before applying changes
-* Search and filter assets
-* Detect duplicate files using file hashes
-* Save organization activity logs
-* Undo recent file movements
-* Display project statistics
-* Group files by creation or modification date
+- Choose and scan a project folder
+- Recursively discover project assets
+- Categorize 3D models, textures, references, audio, video, and other files
+- Search scanned assets
+- Filter by category, extension, size, and source folder
+- Sort by name, category, size, extension, creation date, or modification date
+- Select or exclude individual assets
+- Preview organization before moving files
+- Organize assets into categorized folders
+- Group organized assets by year, month, or full date
+- Avoid overwriting filename conflicts
+- Undo the latest organization operation
+- Detect exact-content duplicate files
+- Safely quarantine selected duplicate copies
+- Restore the latest duplicate cleanup
+- Reveal files in Finder, File Explorer, or the Linux file manager
+- Review project statistics
+- Run an asset health audit
+- Export asset inventory reports as JSON or CSV
+- Remember interface preferences
+- Use keyboard shortcuts
+- Read built-in workflow and safety guidance
 
-## Supported File Types
+## Safety
 
-### Blender and Maya
+Aniccoli is designed around preview-first and restoration-friendly workflows.
 
-* `.blend`
-* `.ma`
-* `.mb`
+- Organization starts with a preview.
+- Existing files are not overwritten.
+- Filename conflicts receive safe alternative names.
+- Organization operations write undo history.
+- Duplicate cleanup does not permanently delete files.
+- Duplicate copies are moved into private quarantine.
+- Restoration refuses to overwrite occupied locations.
+- Reports, statistics, filtering, and audits are read-only.
 
-### 3D Models
-
-* `.fbx`
-* `.obj`
-* `.gltf`
-* `.glb`
-* `.stl`
-
-### Unity Assets
-
-* `.unity`
-* `.prefab`
-* `.mat`
-* `.asset`
-* `.anim`
-* `.controller`
-* `.cs`
-
-### Textures and Images
-
-* `.png`
-* `.jpg`
-* `.jpeg`
-* `.tga`
-* `.exr`
-* `.hdr`
-* `.psd`
-* `.tif`
-* `.tiff`
-
-### Documents and References
-
-* `.pdf`
-* `.doc`
-* `.docx`
-* `.txt`
-* `.md`
-
-### Audio
-
-* `.mp3`
-* `.wav`
-* `.ogg`
-* `.flac`
-
-### Video
-
-* `.mp4`
-* `.mov`
-* `.avi`
-* `.mkv`
-
-### Archives
-
-* `.zip`
-* `.rar`
-* `.7z`
-
-## Texture Detection
-
-Aniccoli can identify common texture maps by checking file names.
-
-For example:
+Aniccoli stores operation records inside a hidden project folder:
 
 ```text
-robot_basecolor.png
-robot_normal.png
-robot_roughness.png
-robot_metallic.png
-robot_height.png
-robot_ao.png
+.aniccoli/
 ```
 
-These files can automatically be organized into folders such as:
+Duplicate-cleanup quarantine is stored inside:
 
 ```text
-Textures/
-├── Base_Color/
-├── Normal/
-├── Roughness/
-├── Metallic/
-├── Height/
-├── Ambient_Occlusion/
-└── Other/
+.aniccoli/duplicate_trash/
 ```
 
-## Example Folder Structure
+Keep the `.aniccoli` folder while you may still need undo or restoration features.
+
+## Requirements
+
+- Python 3.10 or newer
+- CustomTkinter
+- macOS, Windows, or Linux
+
+The project has primarily been developed and tested on macOS.
+
+## Project Structure
 
 ```text
-Project_Name/
-├── 3D_Models/
-│   ├── Blender/
-│   ├── Maya/
-│   ├── FBX/
-│   ├── OBJ/
-│   ├── GLTF/
-│   └── STL/
-├── Unity/
-│   ├── Scenes/
-│   ├── Prefabs/
-│   ├── Materials/
-│   ├── Animations/
-│   ├── Scripts/
-│   └── Other/
-├── Textures/
-│   ├── Base_Color/
-│   ├── Normal/
-│   ├── Roughness/
-│   ├── Metallic/
-│   ├── Height/
-│   ├── Ambient_Occlusion/
-│   └── Other/
-├── References/
-├── Renders/
-├── Audio/
-├── Videos/
-├── Documents/
-├── Archives/
-└── Unknown/
+Aniccoli/
+├── main.py
+├── README.md
+├── aniccoli/
+│   ├── __init__.py
+│   ├── about_window.py
+│   ├── app.py
+│   ├── audit.py
+│   ├── audit_window.py
+│   ├── categories.py
+│   ├── duplicate_cleanup.py
+│   ├── duplicate_window.py
+│   ├── duplicates.py
+│   ├── file_actions.py
+│   ├── filters.py
+│   ├── history.py
+│   ├── organization_options.py
+│   ├── organizer.py
+│   ├── preferences.py
+│   ├── reports.py
+│   ├── scanner.py
+│   ├── selection.py
+│   ├── sorting.py
+│   ├── statistics.py
+│   └── statistics_window.py
+└── .venv/
 ```
 
-## How It Works
-
-1. Open Aniccoli.
-2. Select a folder containing your project assets.
-3. Allow the application to scan the folder.
-4. Review the detected files and categories.
-5. Preview the proposed file movements.
-6. Confirm the organization process.
-7. Browse the newly organized project folders.
-8. Use the undo feature when necessary.
-
-## Safe Organization
-
-Aniccoli is designed to avoid moving files without the user’s knowledge.
-
-Before any changes are made, the application shows a preview containing:
-
-* Original file location
-* New file location
-* Detected file category
-* Possible naming conflicts
-
-Example:
-
-```text
-File: character_final.blend
-
-Current location:
-Downloads/character_final.blend
-
-New location:
-My_Project/3D_Models/Blender/character_final.blend
-```
-
-The user must confirm the operation before files are moved.
-
-## Duplicate Detection
-
-The application can identify possible duplicate assets using:
-
-* File names
-* File sizes
-* File hashes
-
-Users can then decide whether to:
-
-* Keep both files
-* Rename one file
-* Move duplicates into a separate folder
-* Remove unnecessary duplicates
-
-## Search and Filtering
-
-Assets can be searched or filtered by:
-
-* File name
-* File extension
-* Asset category
-* Software type
-* Creation date
-* Modification date
-* File size
-
-Example filters include:
-
-* Blender files only
-* Maya files only
-* Unity assets only
-* Textures only
-* Recently modified files
-* Large files
-* Duplicate files
-
-## Project Dashboard
-
-The dashboard may display:
-
-* Total number of files
-* Total project size
-* Number of 3D models
-* Number of textures
-* Number of Blender files
-* Number of Maya files
-* Number of Unity assets
-* Number of references
-* Number of duplicates
-* Recently modified files
-
-## Technologies Used
-
-* Python
-* CustomTkinter
-* pathlib
-* shutil
-* hashlib
-* Pillow
-* SQLite
-* JSON
-* datetime
-
-## Planned Interface
-
-The application is planned to include a clean sidebar with the following sections:
-
-* Dashboard
-* Scan Folder
-* All Assets
-* 3D Models
-* Blender Files
-* Maya Files
-* Unity Files
-* Textures
-* References
-* Duplicates
-* Activity Log
-* Settings
+The exact list may change as development continues.
 
 ## Installation
 
 Clone the repository:
 
 ```bash
-git clone https://github.com/your-username/aniccoli.git
-```
-
-Move into the project folder:
-
-```bash
-cd aniccoli
+git clone YOUR_REPOSITORY_URL
+cd Aniccoli
 ```
 
 Create a virtual environment:
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 ```
 
-Activate the virtual environment on Windows:
-
-```bash
-.venv\Scripts\activate
-```
-
-Activate the virtual environment on macOS or Linux:
+Activate it on macOS or Linux:
 
 ```bash
 source .venv/bin/activate
 ```
 
-Install the required packages:
+Activate it on Windows PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Install CustomTkinter:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install customtkinter
+```
+
+## Run Aniccoli
+
+With the virtual environment activated:
+
+```bash
+python main.py
+```
+
+## Basic Workflow
+
+1. Open Aniccoli.
+2. Click **Choose Folder**.
+3. Select a 3D project folder.
+4. Click **Scan Folder**.
+5. Review the detected files.
+6. Search, filter, sort, or exclude assets.
+7. Click **Preview Organization**.
+8. Review every planned destination.
+9. Confirm organization only when the plan looks correct.
+10. Use **Undo Last Organization** when restoration is needed.
+
+## Duplicate Cleanup Workflow
+
+1. Scan a project folder.
+2. Click **Analyze Duplicates**.
+3. Review each exact-content duplicate group.
+4. Click **Reveal** to inspect files in the system file manager.
+5. Select only the extra copies.
+6. Click **Quarantine Selected**.
+7. Use **Restore Last Cleanup** when restoration is needed.
+
+Aniccoli prevents cleanup when every copy in a duplicate group is selected.
+
+## Asset Health Audit
+
+The **Asset Health** window checks for:
+
+- Empty files
+- Very large files
+- Duplicate filenames
+- Files without extensions
+- Files that have not been modified for a long time
+
+The audit does not modify project files.
+
+## Project Statistics
+
+The **Project Statistics** window shows:
+
+- Total asset count
+- Combined file size
+- Average file size
+- Category totals
+- Extension totals
+- Source-folder totals
+- Largest assets
+- Most recently modified assets
+
+## Reports
+
+Aniccoli can export selected assets as:
+
+- JSON
+- CSV
+
+Reports contain inventory information and do not move or modify files.
+
+## Keyboard Shortcuts
+
+### macOS
+
+```text
+Command + O          Choose project folder
+Command + R          Scan selected folder
+Command + F          Focus asset search
+Command + Shift + A  Select visible assets
+Command + Shift + C  Clear asset selection
+F1                   Open Help
+```
+
+### Windows and Linux
+
+Use `Ctrl` instead of `Command`.
+
+## Development Checks
+
+Compile the project:
+
+```bash
+python -m compileall main.py aniccoli
+```
+
+Test the main application import:
+
+```bash
+python -c "from aniccoli.app import create_app; print('Aniccoli import works!')"
 ```
 
 Run the application:
@@ -327,82 +242,49 @@ Run the application:
 python main.py
 ```
 
-## Beginner Version
+## Troubleshooting
 
-The first version of Aniccoli will focus on:
+### `ModuleNotFoundError`
 
-* Selecting a folder
-* Scanning files
-* Detecting file extensions
-* Categorizing files
-* Previewing file movements
-* Moving files safely
-* Saving an activity log
-* Undoing the latest organization operation
-
-## Future Improvements
-
-Planned future features include:
-
-* Drag-and-drop file importing
-* Image and texture previews
-* 3D model thumbnails
-* Blender integration
-* Maya integration
-* Unity project detection
-* Missing texture detection
-* Automatic texture-set matching
-* Asset tagging
-* Custom folder rules
-* Batch asset renaming
-* Cloud backup
-* Team project sharing
-* Version tracking
-* AI-assisted asset naming
-* CSV asset-list exporting
-* PDF project reports
-* Dark and light interface modes
-
-## Project Status
-
-Aniccoli is currently under development.
-
-The project is being built step by step with small and meaningful Git commits so that beginners can understand how each feature works.
-
-## Contributing
-
-Contributions, suggestions, and bug reports are welcome.
-
-To contribute:
-
-1. Fork the repository.
-2. Create a new branch.
-3. Make your changes.
-4. Commit your changes.
-5. Push the branch.
-6. Open a pull request.
-
-Example:
+Confirm the virtual environment is active:
 
 ```bash
-git checkout -b feature/new-feature
-git add .
-git commit -m "Add new feature"
-git push origin feature/new-feature
+source .venv/bin/activate
 ```
+
+Then install the dependency:
+
+```bash
+python -m pip install customtkinter
+```
+
+Also confirm that each Python file is inside the inner `aniccoli` folder.
+
+### The app opens but no files appear
+
+- Confirm a project folder has been selected.
+- Click **Scan Folder**.
+- Clear active search and filter controls.
+- Confirm the folder contains supported files.
+
+### A file cannot be revealed
+
+The file may have been moved, renamed, organized, quarantined, or deleted outside Aniccoli. Scan the project again to refresh the interface.
+
+### Undo or restoration history is unavailable
+
+Confirm the project still contains its hidden `.aniccoli` folder.
+
+## Planned Release Work
+
+Before the final packaged release:
+
+- Complete final interface testing
+- Add application screenshots
+- Add automated smoke tests
+- Package the macOS application
+- Prepare the `v1.0.0` GitHub release
 
 ## License
 
-This project is intended for educational and portfolio purposes.
-
-A formal open-source license may be added later.
-
-## Author
-
-Created as a Python learning project for organizing 3D art, animation, and game-development assets.
-
----
-
-🥦 **Aniccoli**
-
-Helping artists keep their digital workspace fresh.
+A license has not yet been selected.
