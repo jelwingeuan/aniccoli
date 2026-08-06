@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 import sys
 from tkinter import filedialog, messagebox
 from typing import Optional
@@ -85,8 +86,311 @@ from aniccoli.statistics import build_asset_statistics
 from aniccoli.statistics_window import AssetStatisticsWindow
 
 
+_OriginalCTkScrollableFrame = ctk.CTkScrollableFrame
+
+
+class NaturalScrollableFrame(_OriginalCTkScrollableFrame):
+    """
+    CustomTkinter scrollable frame with reliable trackpad and wheel input.
+
+    The wheel handler is attached to the containing window rather than the
+    global "all" binding. Every gesture is routed directly to the canvas
+    underneath the pointer.
+    """
+
+    def __init__(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        """Create the frame and install window-level scrolling."""
+        super().__init__(
+            *args,
+            **kwargs,
+        )
+
+        top_level = self.winfo_toplevel()
+
+        top_level.bind(
+            "<MouseWheel>",
+            self._handle_natural_scroll,
+            add="+",
+        )
+
+        top_level.bind(
+            "<Button-4>",
+            self._handle_natural_scroll,
+            add="+",
+        )
+
+        top_level.bind(
+            "<Button-5>",
+            self._handle_natural_scroll,
+            add="+",
+        )
+
+        try:
+            self._parent_canvas.configure(
+                yscrollincrement=1,
+            )
+
+            top_level.bind(
+                "<TouchpadScroll>",
+                self._handle_touchpad_scroll,
+                add="+",
+            )
+        except Exception:
+            # Tk 8.6 does not provide the TouchpadScroll event.
+            pass
+
+    def _pointer_is_over_canvas(
+        self,
+        event: Any,
+    ) -> bool:
+        """Return True when the pointer is inside this frame's canvas."""
+        canvas = self._parent_canvas
+
+        try:
+            if not canvas.winfo_ismapped():
+                return False
+
+            pointer_x = int(
+                getattr(
+                    event,
+                    "x_root",
+                    canvas.winfo_pointerx(),
+                )
+            )
+
+            pointer_y = int(
+                getattr(
+                    event,
+                    "y_root",
+                    canvas.winfo_pointery(),
+                )
+            )
+
+            left = canvas.winfo_rootx()
+            top = canvas.winfo_rooty()
+            right = left + canvas.winfo_width()
+            bottom = top + canvas.winfo_height()
+        except Exception:
+            return False
+
+        return (
+            left <= pointer_x < right
+            and top <= pointer_y < bottom
+        )
+
+    def _wheel_units(
+        self,
+        event: Any,
+    ) -> int:
+        """Convert a platform wheel event into canvas scroll units."""
+        button_number = getattr(
+            event,
+            "num",
+            None,
+        )
+
+        if button_number == 4:
+            return -1
+
+        if button_number == 5:
+            return 1
+
+        try:
+            delta = int(
+                getattr(
+                    event,
+                    "delta",
+                    0,
+                )
+                or 0
+            )
+        except (
+            TypeError,
+            ValueError,
+        ):
+            return 0
+
+        if delta == 0:
+            return 0
+
+        if sys.platform == "darwin":
+            return -delta
+
+        if sys.platform.startswith(
+            "win"
+        ):
+            units = -int(
+                delta / 120
+            )
+
+            if units == 0:
+                return (
+                    -1
+                    if delta > 0
+                    else 1
+                )
+
+            return units
+
+        return (
+            -1
+            if delta > 0
+            else 1
+        )
+
+    def _touchpad_vertical_delta(
+        self,
+        event: Any,
+    ) -> int:
+        """Extract Tk 8.7/9's precise vertical touchpad delta."""
+        try:
+            packed_delta = int(
+                getattr(
+                    event,
+                    "delta",
+                    0,
+                )
+                or 0
+            )
+
+            delta_values = self.tk.call(
+                "tk::PreciseScrollDeltas",
+                packed_delta,
+            )
+
+            delta_x_text, delta_y_text = (
+                self.tk.splitlist(
+                    delta_values
+                )
+            )
+
+            del delta_x_text
+
+            return int(
+                delta_y_text
+            )
+        except Exception:
+            return 0
+
+    def _handle_touchpad_scroll(
+        self,
+        event: Any,
+    ) -> str | None:
+        """Handle native two-finger scrolling on Tk 8.7 and Tk 9."""
+        if self._orientation != "vertical":
+            return None
+
+        if not self._pointer_is_over_canvas(
+            event
+        ):
+            return None
+
+        delta_y = self._touchpad_vertical_delta(
+            event
+        )
+
+        if delta_y == 0:
+            return None
+
+        pixel_units = -delta_y
+
+        try:
+            first_visible, last_visible = (
+                self._parent_canvas.yview()
+            )
+        except Exception:
+            return None
+
+        if (
+            pixel_units < 0
+            and first_visible <= 0.0
+        ):
+            return "break"
+
+        if (
+            pixel_units > 0
+            and last_visible >= 1.0
+        ):
+            return "break"
+
+        self._parent_canvas.yview_scroll(
+            pixel_units,
+            "units",
+        )
+
+        return "break"
+
+    def _handle_natural_scroll(
+        self,
+        event: Any,
+    ) -> str | None:
+        """Scroll this frame when the pointer is over its canvas."""
+        if self._orientation != "vertical":
+            return None
+
+        if not self._pointer_is_over_canvas(
+            event
+        ):
+            return None
+
+        units = self._wheel_units(
+            event
+        )
+
+        if units == 0:
+            return None
+
+        try:
+            first_visible, last_visible = (
+                self._parent_canvas.yview()
+            )
+        except Exception:
+            return None
+
+        if (
+            units < 0
+            and first_visible <= 0.0
+        ):
+            return "break"
+
+        if (
+            units > 0
+            and last_visible >= 1.0
+        ):
+            return "break"
+
+        self._parent_canvas.yview_scroll(
+            units,
+            "units",
+        )
+
+        return "break"
+
+
+ctk.CTkScrollableFrame = NaturalScrollableFrame
+
+
 APP_NAME = "Aniccoli"
-APP_VERSION = "1.0.0"
+APP_VERSION = "0.9.0-beta"
+
+APP_STAGE = "BETA"
+
+APP_BACKGROUND = ("#F3F6F4", "#101512")
+SIDEBAR_BACKGROUND = ("#E9F0EB", "#151C18")
+PANEL_BACKGROUND = ("#FFFFFF", "#1B231E")
+CARD_BACKGROUND = ("#F9FBFA", "#202A24")
+ROW_BACKGROUND = ("#FFFFFF", "#1D251F")
+ROW_ALT_BACKGROUND = ("#F5F8F6", "#202922")
+BORDER_COLOR = ("#D8E2DB", "#324038")
+MUTED_TEXT = ("#617067", "#9BAAA0")
+ACCENT_COLOR = ("#247A4D", "#46B978")
+ACCENT_HOVER = ("#1D6841", "#3AA368")
+ACCENT_SOFT = ("#DCEFE3", "#203F2D")
+DANGER_SOFT = ("#F6E2E2", "#432727")
 
 ALL_CATEGORIES = "All categories"
 ALL_EXTENSIONS = "All extensions"
@@ -247,8 +551,11 @@ class AniccoliApp(ctk.CTk):
     def _configure_window(self) -> None:
         """Configure the main application window."""
         self.title(f"{APP_NAME} {APP_VERSION}")
-        self.geometry("1440x900")
-        self.minsize(1120, 760)
+        self.geometry("1480x920")
+        self.minsize(1180, 760)
+        self.configure(
+            fg_color=APP_BACKGROUND,
+        )
 
         self.grid_rowconfigure(
             0,
@@ -272,17 +579,64 @@ class AniccoliApp(ctk.CTk):
             row=0,
             column=0,
             sticky="nsew",
-            padx=30,
-            pady=25,
         )
 
         self.main_container.grid_columnconfigure(
             0,
+            minsize=300,
+        )
+
+        self.main_container.grid_columnconfigure(
+            1,
             weight=1,
         )
 
         self.main_container.grid_rowconfigure(
-            3,
+            0,
+            weight=1,
+        )
+
+        self.sidebar = ctk.CTkScrollableFrame(
+            master=self.main_container,
+            width=300,
+            corner_radius=0,
+            fg_color=SIDEBAR_BACKGROUND,
+            scrollbar_button_color=BORDER_COLOR,
+            scrollbar_button_hover_color=ACCENT_COLOR,
+        )
+
+        self.sidebar.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+        )
+
+        self.sidebar.grid_columnconfigure(
+            0,
+            weight=1,
+        )
+
+        self.workspace = ctk.CTkFrame(
+            master=self.main_container,
+            corner_radius=0,
+            fg_color="transparent",
+        )
+
+        self.workspace.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=(26, 30),
+            pady=24,
+        )
+
+        self.workspace.grid_columnconfigure(
+            0,
+            weight=1,
+        )
+
+        self.workspace.grid_rowconfigure(
+            2,
             weight=1,
         )
 
@@ -292,44 +646,63 @@ class AniccoliApp(ctk.CTk):
         self._create_results_section()
 
     def _create_header(self) -> None:
-        """Create the application heading."""
-        header_frame = ctk.CTkFrame(
-            master=self.main_container,
+        """Create the brand area and workspace heading."""
+        brand_frame = ctk.CTkFrame(
+            master=self.sidebar,
             fg_color="transparent",
         )
 
-        header_frame.grid(
+        brand_frame.grid(
             row=0,
             column=0,
             sticky="ew",
-            pady=(0, 20),
+            padx=20,
+            pady=(22, 18),
         )
 
-        header_frame.grid_columnconfigure(
+        brand_frame.grid_columnconfigure(
             1,
             weight=1,
         )
 
-        logo_label = ctk.CTkLabel(
-            master=header_frame,
-            text="🥦",
-            font=ctk.CTkFont(
-                size=48,
-            ),
+        logo_frame = ctk.CTkFrame(
+            master=brand_frame,
+            width=54,
+            height=54,
+            corner_radius=16,
+            fg_color=ACCENT_SOFT,
         )
 
-        logo_label.grid(
+        logo_frame.grid(
             row=0,
             column=0,
             rowspan=2,
-            padx=(0, 15),
+            padx=(0, 12),
+        )
+
+        logo_frame.grid_propagate(
+            False
+        )
+
+        logo_label = ctk.CTkLabel(
+            master=logo_frame,
+            text="🥦",
+            font=ctk.CTkFont(
+                size=30,
+            ),
+        )
+
+        logo_label.place(
+            relx=0.5,
+            rely=0.5,
+            anchor="center",
         )
 
         title_label = ctk.CTkLabel(
-            master=header_frame,
-            text="Aniccoli",
+            master=brand_frame,
+            text=APP_NAME,
             font=ctk.CTkFont(
-                size=32,
+                size=23,
                 weight="bold",
             ),
             anchor="w",
@@ -338,80 +711,49 @@ class AniccoliApp(ctk.CTk):
         title_label.grid(
             row=0,
             column=1,
-            sticky="w",
+            sticky="sw",
         )
 
-        description_label = ctk.CTkLabel(
-            master=header_frame,
-            text=(
-                "Scan, search, analyze, organize, and restore "
-                "your 3D production assets."
-            ),
+        stage_label = ctk.CTkLabel(
+            master=brand_frame,
+            text=f"{APP_STAGE}  •  {APP_VERSION}",
             font=ctk.CTkFont(
-                size=14,
+                size=11,
+                weight="bold",
             ),
+            text_color=ACCENT_COLOR,
             anchor="w",
         )
 
-        description_label.grid(
+        stage_label.grid(
             row=1,
             column=1,
-            sticky="w",
+            sticky="nw",
+            pady=(2, 0),
         )
 
-        version_label = ctk.CTkLabel(
-            master=header_frame,
-            text=f"v{APP_VERSION}",
-            font=ctk.CTkFont(
-                size=12,
-            ),
+        workspace_header = ctk.CTkFrame(
+            master=self.workspace,
+            fg_color="transparent",
         )
 
-        version_label.grid(
+        workspace_header.grid(
             row=0,
-            column=2,
-            padx=(15, 8),
-        )
-
-        help_button = ctk.CTkButton(
-            master=header_frame,
-            text="Help",
-            command=self._open_about_window,
-            width=90,
-            height=36,
-        )
-
-        help_button.grid(
-            row=0,
-            column=3,
-            rowspan=2,
-            padx=(0, 2),
-        )
-
-    def _create_folder_controls(self) -> None:
-        """Create folder, organization, and undo controls."""
-        folder_card = ctk.CTkFrame(
-            master=self.main_container,
-            corner_radius=15,
-        )
-
-        folder_card.grid(
-            row=1,
             column=0,
             sticky="ew",
             pady=(0, 18),
         )
 
-        folder_card.grid_columnconfigure(
+        workspace_header.grid_columnconfigure(
             0,
             weight=1,
         )
 
         heading_label = ctk.CTkLabel(
-            master=folder_card,
-            text="Project folder",
+            master=workspace_header,
+            text="Asset workspace",
             font=ctk.CTkFont(
-                size=18,
+                size=28,
                 weight="bold",
             ),
             anchor="w",
@@ -420,40 +762,144 @@ class AniccoliApp(ctk.CTk):
         heading_label.grid(
             row=0,
             column=0,
-            columnspan=6,
             sticky="w",
-            padx=25,
-            pady=(20, 5),
         )
 
-        self.selected_folder_label = ctk.CTkLabel(
-            master=folder_card,
-            text="No folder selected",
+        subtitle_label = ctk.CTkLabel(
+            master=workspace_header,
+            text=(
+                "Review first, then organize with safe undo and "
+                "restoration tools."
+            ),
             font=ctk.CTkFont(
                 size=13,
             ),
+            text_color=MUTED_TEXT,
+            anchor="w",
+        )
+
+        subtitle_label.grid(
+            row=1,
+            column=0,
+            sticky="w",
+            pady=(3, 0),
+        )
+
+        help_button = ctk.CTkButton(
+            master=workspace_header,
+            text="Help & shortcuts",
+            command=self._open_about_window,
+            width=135,
+            height=38,
+            corner_radius=10,
+            fg_color="transparent",
+            hover_color=ACCENT_SOFT,
+            border_width=1,
+            border_color=BORDER_COLOR,
+            text_color=("#27332C", "#E6EEE9"),
+        )
+
+        help_button.grid(
+            row=0,
+            column=1,
+            rowspan=2,
+            padx=(15, 0),
+        )
+
+    def _create_folder_controls(self) -> None:
+        """Create the project workflow controls inside the sidebar."""
+        project_section_label = ctk.CTkLabel(
+            master=self.sidebar,
+            text="PROJECT",
+            font=ctk.CTkFont(
+                size=11,
+                weight="bold",
+            ),
+            text_color=MUTED_TEXT,
+            anchor="w",
+        )
+
+        project_section_label.grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=22,
+            pady=(0, 7),
+        )
+
+        project_card = ctk.CTkFrame(
+            master=self.sidebar,
+            corner_radius=14,
+            fg_color=PANEL_BACKGROUND,
+            border_width=1,
+            border_color=BORDER_COLOR,
+        )
+
+        project_card.grid(
+            row=2,
+            column=0,
+            sticky="ew",
+            padx=14,
+            pady=(0, 18),
+        )
+
+        project_card.grid_columnconfigure(
+            0,
+            weight=1,
+        )
+
+        selected_title = ctk.CTkLabel(
+            master=project_card,
+            text="Selected folder",
+            font=ctk.CTkFont(
+                size=12,
+                weight="bold",
+            ),
+            text_color=MUTED_TEXT,
+            anchor="w",
+        )
+
+        selected_title.grid(
+            row=0,
+            column=0,
+            sticky="ew",
+            padx=15,
+            pady=(14, 3),
+        )
+
+        self.selected_folder_label = ctk.CTkLabel(
+            master=project_card,
+            text="No folder selected",
+            font=ctk.CTkFont(
+                size=13,
+                weight="bold",
+            ),
             anchor="w",
             justify="left",
-            wraplength=1200,
+            wraplength=235,
         )
 
         self.selected_folder_label.grid(
             row=1,
             column=0,
-            columnspan=6,
             sticky="ew",
-            padx=25,
-            pady=(0, 15),
+            padx=15,
+            pady=(0, 12),
         )
 
         choose_folder_button = ctk.CTkButton(
-            master=folder_card,
-            text="Choose Project Folder",
+            master=project_card,
+            text="Choose project folder",
             command=self._select_folder,
-            width=180,
-            height=40,
+            height=39,
+            corner_radius=10,
+            fg_color="transparent",
+            hover_color=ACCENT_SOFT,
+            border_width=1,
+            border_color=BORDER_COLOR,
+            text_color=("#27332C", "#E6EEE9"),
             font=ctk.CTkFont(
-                size=14,
+                size=13,
                 weight="bold",
             ),
         )
@@ -461,38 +907,42 @@ class AniccoliApp(ctk.CTk):
         choose_folder_button.grid(
             row=2,
             column=0,
-            sticky="w",
-            padx=(25, 8),
-            pady=(0, 20),
+            sticky="ew",
+            padx=15,
+            pady=(0, 10),
         )
 
         recursive_checkbox = ctk.CTkCheckBox(
-            master=folder_card,
-            text="Scan subfolders",
+            master=project_card,
+            text="Include subfolders",
             variable=self.recursive_scan_var,
             onvalue=True,
             offvalue=False,
             command=self._on_recursive_scan_changed,
             font=ctk.CTkFont(
-                size=14,
+                size=12,
             ),
+            fg_color=ACCENT_COLOR,
+            hover_color=ACCENT_HOVER,
         )
 
         recursive_checkbox.grid(
-            row=2,
-            column=1,
+            row=3,
+            column=0,
             sticky="w",
-            padx=8,
-            pady=(0, 20),
+            padx=16,
+            pady=(0, 12),
         )
 
         self.scan_button = ctk.CTkButton(
-            master=folder_card,
-            text="Scan Folder",
+            master=project_card,
+            text="Scan project",
             command=self._scan_selected_folder,
-            width=125,
-            height=40,
+            height=42,
             state="disabled",
+            corner_radius=11,
+            fg_color=ACCENT_COLOR,
+            hover_color=ACCENT_HOVER,
             font=ctk.CTkFont(
                 size=14,
                 weight="bold",
@@ -500,125 +950,158 @@ class AniccoliApp(ctk.CTk):
         )
 
         self.scan_button.grid(
-            row=2,
-            column=2,
-            padx=8,
-            pady=(0, 20),
+            row=4,
+            column=0,
+            sticky="ew",
+            padx=15,
+            pady=(0, 15),
         )
 
-        self.duplicate_button = ctk.CTkButton(
-            master=folder_card,
-            text="Analyze Duplicates",
-            command=self._analyze_duplicates,
-            width=155,
-            height=40,
-            state="disabled",
+        workflow_section_label = ctk.CTkLabel(
+            master=self.sidebar,
+            text="WORKFLOW",
             font=ctk.CTkFont(
-                size=14,
+                size=11,
                 weight="bold",
             ),
+            text_color=MUTED_TEXT,
+            anchor="w",
         )
 
-        self.duplicate_button.grid(
-            row=2,
-            column=3,
-            padx=8,
-            pady=(0, 20),
+        workflow_section_label.grid(
+            row=3,
+            column=0,
+            sticky="ew",
+            padx=22,
+            pady=(0, 7),
+        )
+
+        workflow_card = ctk.CTkFrame(
+            master=self.sidebar,
+            corner_radius=14,
+            fg_color=PANEL_BACKGROUND,
+            border_width=1,
+            border_color=BORDER_COLOR,
+        )
+
+        workflow_card.grid(
+            row=4,
+            column=0,
+            sticky="ew",
+            padx=14,
+            pady=(0, 18),
+        )
+
+        workflow_card.grid_columnconfigure(
+            0,
+            weight=1,
         )
 
         self.preview_button = ctk.CTkButton(
-            master=folder_card,
-            text="Preview Organization",
+            master=workflow_card,
+            text="Preview organization",
             command=self._preview_organization,
-            width=170,
             height=40,
             state="disabled",
+            corner_radius=10,
+            fg_color=ACCENT_COLOR,
+            hover_color=ACCENT_HOVER,
             font=ctk.CTkFont(
-                size=14,
+                size=13,
                 weight="bold",
             ),
         )
 
         self.preview_button.grid(
-            row=2,
-            column=4,
-            padx=8,
-            pady=(0, 20),
+            row=0,
+            column=0,
+            sticky="ew",
+            padx=14,
+            pady=(14, 8),
         )
 
-        self.undo_button = ctk.CTkButton(
-            master=folder_card,
-            text="Undo Last Organization",
-            command=self._undo_last_organization,
-            width=180,
-            height=40,
+        self.duplicate_button = ctk.CTkButton(
+            master=workflow_card,
+            text="Analyze duplicates",
+            command=self._analyze_duplicates,
+            height=38,
             state="disabled",
+            corner_radius=10,
+            fg_color="transparent",
+            hover_color=ACCENT_SOFT,
+            border_width=1,
+            border_color=BORDER_COLOR,
+            text_color=("#27332C", "#E6EEE9"),
+        )
+
+        self.duplicate_button.grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=14,
+            pady=(0, 14),
+        )
+
+        organization_section_label = ctk.CTkLabel(
+            master=self.sidebar,
+            text="ORGANIZATION",
             font=ctk.CTkFont(
-                size=14,
+                size=11,
                 weight="bold",
             ),
+            text_color=MUTED_TEXT,
+            anchor="w",
         )
 
-        self.undo_button.grid(
-            row=2,
-            column=5,
-            sticky="e",
-            padx=(8, 25),
-            pady=(0, 20),
-        )
-
-        organization_settings_frame = ctk.CTkFrame(
-            master=folder_card,
-            corner_radius=10,
-        )
-
-        organization_settings_frame.grid(
-            row=3,
+        organization_section_label.grid(
+            row=5,
             column=0,
-            columnspan=6,
             sticky="ew",
-            padx=25,
-            pady=(0, 12),
+            padx=22,
+            pady=(0, 7),
         )
 
-        organization_settings_frame.grid_columnconfigure(
-            4,
+        organization_card = ctk.CTkFrame(
+            master=self.sidebar,
+            corner_radius=14,
+            fg_color=PANEL_BACKGROUND,
+            border_width=1,
+            border_color=BORDER_COLOR,
+        )
+
+        organization_card.grid(
+            row=6,
+            column=0,
+            sticky="ew",
+            padx=14,
+            pady=(0, 18),
+        )
+
+        organization_card.grid_columnconfigure(
+            0,
             weight=1,
         )
 
-        organization_settings_label = ctk.CTkLabel(
-            master=organization_settings_frame,
-            text="Organization settings",
+        grouping_label = ctk.CTkLabel(
+            master=organization_card,
+            text="Date grouping",
             font=ctk.CTkFont(
-                size=14,
+                size=12,
                 weight="bold",
             ),
+            anchor="w",
         )
 
-        organization_settings_label.grid(
+        grouping_label.grid(
             row=0,
             column=0,
-            padx=(15, 10),
-            pady=12,
-        )
-
-        date_grouping_label = ctk.CTkLabel(
-            master=organization_settings_frame,
-            text="Date grouping:",
-            font=ctk.CTkFont(
-                size=13,
-            ),
-        )
-
-        date_grouping_label.grid(
-            row=0,
-            column=1,
-            padx=(10, 5),
-            pady=12,
+            sticky="ew",
+            padx=14,
+            pady=(13, 5),
         )
 
         self.date_grouping_menu = ctk.CTkOptionMenu(
-            master=organization_settings_frame,
+            master=organization_card,
             variable=self.date_grouping_var,
             values=[
                 str(option)
@@ -627,34 +1110,42 @@ class AniccoliApp(ctk.CTk):
             command=lambda _value: (
                 self._on_organization_options_changed()
             ),
-            width=170,
             height=36,
+            corner_radius=9,
+            fg_color=CARD_BACKGROUND,
+            button_color=ACCENT_COLOR,
+            button_hover_color=ACCENT_HOVER,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         self.date_grouping_menu.grid(
-            row=0,
-            column=2,
-            padx=(5, 15),
-            pady=12,
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=14,
+            pady=(0, 10),
         )
 
-        date_source_label = ctk.CTkLabel(
-            master=organization_settings_frame,
-            text="Use:",
+        source_label = ctk.CTkLabel(
+            master=organization_card,
+            text="Date source",
             font=ctk.CTkFont(
-                size=13,
+                size=12,
+                weight="bold",
             ),
+            anchor="w",
         )
 
-        date_source_label.grid(
-            row=0,
-            column=3,
-            padx=(10, 5),
-            pady=12,
+        source_label.grid(
+            row=2,
+            column=0,
+            sticky="ew",
+            padx=14,
+            pady=(0, 5),
         )
 
         self.date_source_menu = ctk.CTkOptionMenu(
-            master=organization_settings_frame,
+            master=organization_card,
             variable=self.date_source_var,
             values=[
                 str(option)
@@ -663,163 +1154,250 @@ class AniccoliApp(ctk.CTk):
             command=lambda _value: (
                 self._on_organization_options_changed()
             ),
-            width=170,
             height=36,
             state="disabled",
+            corner_radius=9,
+            fg_color=CARD_BACKGROUND,
+            button_color=ACCENT_COLOR,
+            button_hover_color=ACCENT_HOVER,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         self.date_source_menu.grid(
-            row=0,
-            column=4,
-            sticky="w",
-            padx=(5, 15),
-            pady=12,
+            row=3,
+            column=0,
+            sticky="ew",
+            padx=14,
+            pady=(0, 14),
         )
 
-        settings_description = ctk.CTkLabel(
-            master=organization_settings_frame,
-            text=(
-                "Optional: place files inside year or "
-                "year-and-month folders."
-            ),
+        tools_section_label = ctk.CTkLabel(
+            master=self.sidebar,
+            text="TOOLS & RECOVERY",
             font=ctk.CTkFont(
-                size=12,
-            ),
-            anchor="e",
-        )
-
-        settings_description.grid(
-            row=0,
-            column=5,
-            sticky="e",
-            padx=(10, 15),
-            pady=12,
-        )
-
-        self.export_button = ctk.CTkButton(
-            master=organization_settings_frame,
-            text="Export Report",
-            command=self._export_inventory_report,
-            width=135,
-            height=36,
-            state="disabled",
-            font=ctk.CTkFont(
-                size=13,
+                size=11,
                 weight="bold",
             ),
+            text_color=MUTED_TEXT,
+            anchor="w",
         )
 
-        self.export_button.grid(
-            row=0,
-            column=6,
-            padx=(0, 8),
-            pady=12,
+        tools_section_label.grid(
+            row=7,
+            column=0,
+            sticky="ew",
+            padx=22,
+            pady=(0, 7),
+        )
+
+        tools_card = ctk.CTkFrame(
+            master=self.sidebar,
+            corner_radius=14,
+            fg_color=PANEL_BACKGROUND,
+            border_width=1,
+            border_color=BORDER_COLOR,
+        )
+
+        tools_card.grid(
+            row=8,
+            column=0,
+            sticky="ew",
+            padx=14,
+            pady=(0, 18),
+        )
+
+        tools_card.grid_columnconfigure(
+            (0, 1),
+            weight=1,
+            uniform="sidebar-tools",
         )
 
         self.statistics_button = ctk.CTkButton(
-            master=organization_settings_frame,
-            text="Project Statistics",
+            master=tools_card,
+            text="Statistics",
             command=self._open_project_statistics,
-            width=145,
             height=36,
             state="disabled",
-            font=ctk.CTkFont(
-                size=13,
-                weight="bold",
-            ),
+            corner_radius=9,
+            fg_color="transparent",
+            hover_color=ACCENT_SOFT,
+            border_width=1,
+            border_color=BORDER_COLOR,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         self.statistics_button.grid(
             row=0,
-            column=7,
-            padx=(0, 15),
-            pady=12,
+            column=0,
+            sticky="ew",
+            padx=(12, 5),
+            pady=(12, 8),
         )
 
         self.audit_button = ctk.CTkButton(
-            master=organization_settings_frame,
-            text="Asset Health",
+            master=tools_card,
+            text="Asset health",
             command=self._open_asset_health_audit,
-            width=125,
             height=36,
             state="disabled",
-            font=ctk.CTkFont(
-                size=13,
-                weight="bold",
-            ),
+            corner_radius=9,
+            fg_color="transparent",
+            hover_color=ACCENT_SOFT,
+            border_width=1,
+            border_color=BORDER_COLOR,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         self.audit_button.grid(
+            row=0,
+            column=1,
+            sticky="ew",
+            padx=(5, 12),
+            pady=(12, 8),
+        )
+
+        self.export_button = ctk.CTkButton(
+            master=tools_card,
+            text="Export report",
+            command=self._export_inventory_report,
+            height=36,
+            state="disabled",
+            corner_radius=9,
+            fg_color="transparent",
+            hover_color=ACCENT_SOFT,
+            border_width=1,
+            border_color=BORDER_COLOR,
+            text_color=("#27332C", "#E6EEE9"),
+        )
+
+        self.export_button.grid(
             row=1,
-            column=7,
-            sticky="e",
-            padx=(0, 15),
+            column=0,
+            sticky="ew",
+            padx=(12, 5),
             pady=(0, 12),
         )
 
-        self.status_label = ctk.CTkLabel(
-            master=folder_card,
-            text="Choose a folder to begin.",
+        self.undo_button = ctk.CTkButton(
+            master=tools_card,
+            text="Undo organize",
+            command=self._undo_last_organization,
+            height=36,
+            state="disabled",
+            corner_radius=9,
+            fg_color="transparent",
+            hover_color=DANGER_SOFT,
+            border_width=1,
+            border_color=BORDER_COLOR,
+            text_color=("#7A3030", "#F0B8B8"),
+        )
+
+        self.undo_button.grid(
+            row=1,
+            column=1,
+            sticky="ew",
+            padx=(5, 12),
+            pady=(0, 12),
+        )
+
+        status_card = ctk.CTkFrame(
+            master=self.sidebar,
+            corner_radius=14,
+            fg_color=ACCENT_SOFT,
+        )
+
+        status_card.grid(
+            row=9,
+            column=0,
+            sticky="ew",
+            padx=14,
+            pady=(0, 20),
+        )
+
+        status_title = ctk.CTkLabel(
+            master=status_card,
+            text="STATUS",
             font=ctk.CTkFont(
-                size=13,
+                size=10,
+                weight="bold",
             ),
+            text_color=ACCENT_COLOR,
             anchor="w",
         )
 
-        self.status_label.grid(
-            row=4,
-            column=0,
-            columnspan=6,
-            sticky="ew",
-            padx=25,
-            pady=(0, 20),
+        status_title.pack(
+            fill="x",
+            padx=14,
+            pady=(12, 3),
+        )
+
+        self.status_label = ctk.CTkLabel(
+            master=status_card,
+            text="Choose a folder to begin.",
+            font=ctk.CTkFont(
+                size=12,
+            ),
+            anchor="w",
+            justify="left",
+            wraplength=235,
+        )
+
+        self.status_label.pack(
+            fill="x",
+            padx=14,
+            pady=(0, 13),
         )
 
     def _create_summary_section(self) -> None:
         """Create the scan-summary cards."""
         summary_frame = ctk.CTkFrame(
-            master=self.main_container,
+            master=self.workspace,
             fg_color="transparent",
         )
 
         summary_frame.grid(
-            row=2,
+            row=1,
             column=0,
             sticky="ew",
-            pady=(0, 18),
+            pady=(0, 16),
         )
 
         summary_frame.grid_columnconfigure(
-            (0, 1, 2),
+            (0, 1, 2, 3),
             weight=1,
             uniform="summary",
         )
 
-        self.files_count_label = (
-            self._create_summary_card(
-                parent=summary_frame,
-                column=0,
-                heading="Files found",
-                starting_value="0",
-            )
+        self.files_count_label = self._create_summary_card(
+            parent=summary_frame,
+            column=0,
+            heading="FILES FOUND",
+            starting_value="0",
+            accent="Files in the current scan",
         )
 
-        self.total_size_label = (
-            self._create_summary_card(
-                parent=summary_frame,
-                column=1,
-                heading="Combined size",
-                starting_value="0 B",
-            )
+        self.total_size_label = self._create_summary_card(
+            parent=summary_frame,
+            column=1,
+            heading="COMBINED SIZE",
+            starting_value="0 B",
+            accent="Total detected asset size",
         )
 
-        self.categories_count_label = (
-            self._create_summary_card(
-                parent=summary_frame,
-                column=2,
-                heading="Categories",
-                starting_value="0",
-            )
+        self.categories_count_label = self._create_summary_card(
+            parent=summary_frame,
+            column=2,
+            heading="CATEGORIES",
+            starting_value="0",
+            accent="Detected asset groups",
+        )
+
+        self.selection_count_label = self._create_summary_card(
+            parent=summary_frame,
+            column=3,
+            heading="SELECTED",
+            starting_value="0 / 0",
+            accent="Used for preview and export",
         )
 
     def _create_summary_card(
@@ -828,48 +1406,74 @@ class AniccoliApp(ctk.CTk):
         column: int,
         heading: str,
         starting_value: str,
+        accent: str,
     ) -> ctk.CTkLabel:
         """Create a summary card and return its value label."""
         card = ctk.CTkFrame(
             master=parent,
-            corner_radius=12,
+            corner_radius=14,
+            fg_color=PANEL_BACKGROUND,
+            border_width=1,
+            border_color=BORDER_COLOR,
         )
 
         card.grid(
             row=0,
             column=column,
-            sticky="ew",
+            sticky="nsew",
             padx=(
                 0 if column == 0 else 6,
-                0 if column == 2 else 6,
+                0 if column == 3 else 6,
             ),
-        )
-
-        value_label = ctk.CTkLabel(
-            master=card,
-            text=starting_value,
-            font=ctk.CTkFont(
-                size=26,
-                weight="bold",
-            ),
-        )
-
-        value_label.pack(
-            padx=20,
-            pady=(17, 2),
         )
 
         heading_label = ctk.CTkLabel(
             master=card,
             text=heading,
             font=ctk.CTkFont(
-                size=13,
+                size=10,
+                weight="bold",
             ),
+            text_color=MUTED_TEXT,
+            anchor="w",
         )
 
         heading_label.pack(
-            padx=20,
-            pady=(0, 17),
+            fill="x",
+            padx=16,
+            pady=(14, 4),
+        )
+
+        value_label = ctk.CTkLabel(
+            master=card,
+            text=starting_value,
+            font=ctk.CTkFont(
+                size=25,
+                weight="bold",
+            ),
+            anchor="w",
+        )
+
+        value_label.pack(
+            fill="x",
+            padx=16,
+            pady=(0, 1),
+        )
+
+        accent_label = ctk.CTkLabel(
+            master=card,
+            text=accent,
+            font=ctk.CTkFont(
+                size=11,
+            ),
+            text_color=MUTED_TEXT,
+            anchor="w",
+        )
+
+        accent_label.pack(
+            fill="x",
+            padx=16,
+            pady=(0, 14),
         )
 
         return value_label
@@ -877,12 +1481,15 @@ class AniccoliApp(ctk.CTk):
     def _create_results_section(self) -> None:
         """Create filters and the scrollable results section."""
         results_card = ctk.CTkFrame(
-            master=self.main_container,
-            corner_radius=15,
+            master=self.workspace,
+            corner_radius=16,
+            fg_color=PANEL_BACKGROUND,
+            border_width=1,
+            border_color=BORDER_COLOR,
         )
 
         results_card.grid(
-            row=3,
+            row=2,
             column=0,
             sticky="nsew",
         )
@@ -906,8 +1513,8 @@ class AniccoliApp(ctk.CTk):
             row=0,
             column=0,
             sticky="ew",
-            padx=20,
-            pady=(18, 12),
+            padx=18,
+            pady=(16, 10),
         )
 
         heading_frame.grid_columnconfigure(
@@ -931,19 +1538,49 @@ class AniccoliApp(ctk.CTk):
             sticky="w",
         )
 
-        self.filter_count_label = ctk.CTkLabel(
+        results_hint = ctk.CTkLabel(
             master=heading_frame,
-            text="Showing 0 of 0 files",
+            text="Filter and select the files used by organization and reports.",
             font=ctk.CTkFont(
-                size=13,
+                size=11,
             ),
-            anchor="e",
+            text_color=MUTED_TEXT,
+            anchor="w",
         )
 
-        self.filter_count_label.grid(
+        results_hint.grid(
+            row=1,
+            column=0,
+            sticky="w",
+            pady=(2, 0),
+        )
+
+        count_pill = ctk.CTkFrame(
+            master=heading_frame,
+            corner_radius=12,
+            fg_color=ACCENT_SOFT,
+        )
+
+        count_pill.grid(
             row=0,
             column=1,
+            rowspan=2,
             sticky="e",
+        )
+
+        self.filter_count_label = ctk.CTkLabel(
+            master=count_pill,
+            text="Showing 0 of 0 files",
+            font=ctk.CTkFont(
+                size=12,
+                weight="bold",
+            ),
+            text_color=ACCENT_COLOR,
+        )
+
+        self.filter_count_label.pack(
+            padx=12,
+            pady=7,
         )
 
         self._create_filter_controls(
@@ -952,54 +1589,32 @@ class AniccoliApp(ctk.CTk):
 
         results_header = ctk.CTkFrame(
             master=results_card,
-            corner_radius=8,
+            corner_radius=9,
+            fg_color=CARD_BACKGROUND,
         )
 
         results_header.grid(
             row=2,
             column=0,
             sticky="ew",
-            padx=15,
-            pady=(0, 5),
+            padx=14,
+            pady=(0, 6),
         )
 
-        results_header.grid_columnconfigure(
-            0,
-            weight=0,
-        )
-
-        results_header.grid_columnconfigure(
-            1,
-            weight=3,
-        )
-
-        results_header.grid_columnconfigure(
-            2,
-            weight=2,
-        )
-
-        results_header.grid_columnconfigure(
-            3,
-            weight=1,
-        )
-
-        results_header.grid_columnconfigure(
-            4,
-            weight=2,
-        )
-
-        results_header.grid_columnconfigure(
-            5,
-            weight=0,
-        )
+        results_header.grid_columnconfigure(0, weight=0)
+        results_header.grid_columnconfigure(1, weight=3)
+        results_header.grid_columnconfigure(2, weight=2)
+        results_header.grid_columnconfigure(3, weight=1)
+        results_header.grid_columnconfigure(4, weight=2)
+        results_header.grid_columnconfigure(5, weight=0)
 
         headings = (
-            "Use",
-            "File",
-            "Category",
-            "Size",
-            "Planned folder",
-            "Action",
+            "USE",
+            "ASSET",
+            "CATEGORY",
+            "SIZE",
+            "PLANNED DESTINATION",
+            "ACTION",
         )
 
         for column, heading in enumerate(
@@ -1011,19 +1626,20 @@ class AniccoliApp(ctk.CTk):
                 column=column,
             )
 
-        self.results_scroll_frame = (
-            ctk.CTkScrollableFrame(
-                master=results_card,
-                corner_radius=8,
-            )
+        self.results_scroll_frame = ctk.CTkScrollableFrame(
+            master=results_card,
+            corner_radius=10,
+            fg_color="transparent",
+            scrollbar_button_color=BORDER_COLOR,
+            scrollbar_button_hover_color=ACCENT_COLOR,
         )
 
         self.results_scroll_frame.grid(
             row=3,
             column=0,
             sticky="nsew",
-            padx=15,
-            pady=(0, 15),
+            padx=14,
+            pady=(0, 14),
         )
 
         self.results_scroll_frame.grid_columnconfigure(
@@ -1032,25 +1648,25 @@ class AniccoliApp(ctk.CTk):
         )
 
         self._show_empty_results_message(
-            "No scan results yet.\n"
-            "Select a project folder and click Scan Folder."
+            "No scan results yet.\nChoose a project folder from the sidebar."
         )
 
     def _create_filter_controls(
         self,
         parent: ctk.CTkFrame,
     ) -> None:
-        """Create search and filtering controls."""
+        """Create compact search, filtering, sorting, and selection controls."""
         filter_frame = ctk.CTkFrame(
             master=parent,
-            corner_radius=10,
+            corner_radius=12,
+            fg_color=CARD_BACKGROUND,
         )
 
         filter_frame.grid(
             row=1,
             column=0,
             sticky="ew",
-            padx=15,
+            padx=14,
             pady=(0, 10),
         )
 
@@ -1067,18 +1683,19 @@ class AniccoliApp(ctk.CTk):
         self.search_entry = ctk.CTkEntry(
             master=filter_frame,
             textvariable=self.search_var,
-            placeholder_text=(
-                "Search file name, path, category, or folder..."
-            ),
-            height=38,
+            placeholder_text="Search assets, paths, categories, or folders…",
+            height=40,
+            corner_radius=10,
+            border_color=BORDER_COLOR,
         )
 
         self.search_entry.grid(
             row=0,
             column=0,
+            columnspan=4,
             sticky="ew",
             padx=(12, 6),
-            pady=12,
+            pady=(12, 8),
         )
 
         self.search_entry.bind(
@@ -1086,373 +1703,335 @@ class AniccoliApp(ctk.CTk):
             lambda _event: self._apply_filters(),
         )
 
+        clear_button = ctk.CTkButton(
+            master=filter_frame,
+            text="Clear filters",
+            command=self._clear_filters,
+            width=112,
+            height=40,
+            corner_radius=10,
+            fg_color="transparent",
+            hover_color=ACCENT_SOFT,
+            border_width=1,
+            border_color=BORDER_COLOR,
+            text_color=("#27332C", "#E6EEE9"),
+        )
+
+        clear_button.grid(
+            row=0,
+            column=4,
+            sticky="ew",
+            padx=(6, 12),
+            pady=(12, 8),
+        )
+
         self.category_filter_menu = ctk.CTkOptionMenu(
             master=filter_frame,
             variable=self.category_filter_var,
-            values=[
-                ALL_CATEGORIES,
-            ],
-            command=lambda _value: (
-                self._apply_filters()
-            ),
-            height=38,
+            values=[ALL_CATEGORIES],
+            command=lambda _value: self._apply_filters(),
+            height=36,
+            corner_radius=9,
+            fg_color=PANEL_BACKGROUND,
+            button_color=ACCENT_COLOR,
+            button_hover_color=ACCENT_HOVER,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         self.category_filter_menu.grid(
-            row=0,
-            column=1,
+            row=1,
+            column=0,
             sticky="ew",
-            padx=6,
-            pady=12,
+            padx=(12, 5),
+            pady=5,
         )
 
         self.extension_filter_menu = ctk.CTkOptionMenu(
             master=filter_frame,
             variable=self.extension_filter_var,
-            values=[
-                ALL_EXTENSIONS,
-            ],
-            command=lambda _value: (
-                self._apply_filters()
-            ),
-            height=38,
+            values=[ALL_EXTENSIONS],
+            command=lambda _value: self._apply_filters(),
+            height=36,
+            corner_radius=9,
+            fg_color=PANEL_BACKGROUND,
+            button_color=ACCENT_COLOR,
+            button_hover_color=ACCENT_HOVER,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         self.extension_filter_menu.grid(
-            row=0,
-            column=2,
+            row=1,
+            column=1,
             sticky="ew",
-            padx=6,
-            pady=12,
+            padx=5,
+            pady=5,
         )
 
         self.size_filter_menu = ctk.CTkOptionMenu(
             master=filter_frame,
             variable=self.size_filter_var,
-            values=list(
-                SIZE_FILTER_OPTIONS,
-            ),
-            command=lambda _value: (
-                self._apply_filters()
-            ),
-            height=38,
+            values=list(SIZE_FILTER_OPTIONS),
+            command=lambda _value: self._apply_filters(),
+            height=36,
+            corner_radius=9,
+            fg_color=PANEL_BACKGROUND,
+            button_color=ACCENT_COLOR,
+            button_hover_color=ACCENT_HOVER,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         self.size_filter_menu.grid(
-            row=0,
-            column=3,
+            row=1,
+            column=2,
             sticky="ew",
-            padx=6,
-            pady=12,
+            padx=5,
+            pady=5,
         )
 
         self.modified_filter_menu = ctk.CTkOptionMenu(
             master=filter_frame,
             variable=self.modified_filter_var,
-            values=list(
-                MODIFIED_FILTER_OPTIONS,
-            ),
-            command=lambda _value: (
-                self._apply_filters()
-            ),
-            height=38,
+            values=list(MODIFIED_FILTER_OPTIONS),
+            command=lambda _value: self._apply_filters(),
+            height=36,
+            corner_radius=9,
+            fg_color=PANEL_BACKGROUND,
+            button_color=ACCENT_COLOR,
+            button_hover_color=ACCENT_HOVER,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         self.modified_filter_menu.grid(
-            row=0,
-            column=4,
-            sticky="ew",
-            padx=6,
-            pady=12,
-        )
-
-        folder_controls_frame = ctk.CTkFrame(
-            master=filter_frame,
-            fg_color="transparent",
-        )
-
-        folder_controls_frame.grid(
             row=1,
-            column=0,
-            columnspan=6,
+            column=3,
             sticky="ew",
-            padx=12,
-            pady=(0, 12),
+            padx=5,
+            pady=5,
         )
 
-        folder_controls_frame.grid_columnconfigure(
-            1,
-            weight=1,
-        )
-
-        folder_filter_label = ctk.CTkLabel(
-            master=folder_controls_frame,
-            text="Parent folder:",
+        filter_caption = ctk.CTkLabel(
+            master=filter_frame,
+            text="Quick filters",
             font=ctk.CTkFont(
-                size=13,
+                size=11,
                 weight="bold",
             ),
+            text_color=MUTED_TEXT,
         )
 
-        folder_filter_label.grid(
-            row=0,
-            column=0,
-            padx=(0, 8),
+        filter_caption.grid(
+            row=1,
+            column=4,
+            padx=(8, 12),
+            pady=5,
         )
 
         self.folder_filter_menu = ctk.CTkOptionMenu(
-            master=folder_controls_frame,
+            master=filter_frame,
             variable=self.folder_filter_var,
-            values=[
-                ALL_FOLDERS,
-            ],
-            command=lambda _value: (
-                self._on_folder_filter_changed()
-            ),
+            values=[ALL_FOLDERS],
+            command=lambda _value: self._on_folder_filter_changed(),
             height=36,
+            corner_radius=9,
+            fg_color=PANEL_BACKGROUND,
+            button_color=ACCENT_COLOR,
+            button_hover_color=ACCENT_HOVER,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         self.folder_filter_menu.grid(
-            row=0,
-            column=1,
+            row=2,
+            column=0,
             sticky="ew",
-            padx=(0, 12),
-        )
-
-        folder_match_label = ctk.CTkLabel(
-            master=folder_controls_frame,
-            text="Match:",
-            font=ctk.CTkFont(
-                size=13,
-                weight="bold",
-            ),
-        )
-
-        folder_match_label.grid(
-            row=0,
-            column=2,
-            padx=(0, 8),
+            padx=(12, 5),
+            pady=5,
         )
 
         self.folder_match_mode_menu = ctk.CTkOptionMenu(
-            master=folder_controls_frame,
+            master=filter_frame,
             variable=self.folder_match_mode_var,
-            values=[
-                str(option)
-                for option in FolderMatchMode
-            ],
-            command=lambda _value: (
-                self._apply_filters()
-            ),
-            width=190,
+            values=[str(option) for option in FolderMatchMode],
+            command=lambda _value: self._apply_filters(),
             height=36,
             state="disabled",
+            corner_radius=9,
+            fg_color=PANEL_BACKGROUND,
+            button_color=ACCENT_COLOR,
+            button_hover_color=ACCENT_HOVER,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         self.folder_match_mode_menu.grid(
-            row=0,
-            column=3,
-            padx=(0, 12),
-        )
-
-        folder_filter_hint = ctk.CTkLabel(
-            master=folder_controls_frame,
-            text=(
-                "Filter the table by the asset's current "
-                "project folder."
-            ),
-            font=ctk.CTkFont(
-                size=12,
-            ),
-            anchor="w",
-        )
-
-        folder_filter_hint.grid(
-            row=0,
-            column=4,
-            sticky="w",
-        )
-
-        sort_field_label = ctk.CTkLabel(
-            master=folder_controls_frame,
-            text="Sort by:",
-            font=ctk.CTkFont(
-                size=13,
-                weight="bold",
-            ),
-        )
-
-        sort_field_label.grid(
-            row=1,
-            column=0,
-            padx=(0, 8),
-            pady=(10, 0),
+            row=2,
+            column=1,
+            sticky="ew",
+            padx=5,
+            pady=5,
         )
 
         self.sort_field_menu = ctk.CTkOptionMenu(
-            master=folder_controls_frame,
+            master=filter_frame,
             variable=self.sort_field_var,
-            values=[
-                str(option)
-                for option in SortField
-            ],
-            command=lambda _value: (
-                self._apply_filters()
-            ),
+            values=[str(option) for option in SortField],
+            command=lambda _value: self._apply_filters(),
             height=36,
+            corner_radius=9,
+            fg_color=PANEL_BACKGROUND,
+            button_color=ACCENT_COLOR,
+            button_hover_color=ACCENT_HOVER,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         self.sort_field_menu.grid(
-            row=1,
-            column=1,
-            sticky="ew",
-            padx=(0, 12),
-            pady=(10, 0),
-        )
-
-        sort_direction_label = ctk.CTkLabel(
-            master=folder_controls_frame,
-            text="Direction:",
-            font=ctk.CTkFont(
-                size=13,
-                weight="bold",
-            ),
-        )
-
-        sort_direction_label.grid(
-            row=1,
+            row=2,
             column=2,
-            padx=(0, 8),
-            pady=(10, 0),
+            sticky="ew",
+            padx=5,
+            pady=5,
         )
 
         self.sort_direction_menu = ctk.CTkOptionMenu(
-            master=folder_controls_frame,
+            master=filter_frame,
             variable=self.sort_direction_var,
-            values=[
-                str(option)
-                for option in SortDirection
-            ],
-            command=lambda _value: (
-                self._apply_filters()
-            ),
-            width=190,
+            values=[str(option) for option in SortDirection],
+            command=lambda _value: self._apply_filters(),
             height=36,
+            corner_radius=9,
+            fg_color=PANEL_BACKGROUND,
+            button_color=ACCENT_COLOR,
+            button_hover_color=ACCENT_HOVER,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         self.sort_direction_menu.grid(
-            row=1,
+            row=2,
             column=3,
-            padx=(0, 12),
-            pady=(10, 0),
+            sticky="ew",
+            padx=5,
+            pady=5,
         )
 
         reset_sort_button = ctk.CTkButton(
-            master=folder_controls_frame,
-            text="Reset Sort",
+            master=filter_frame,
+            text="Reset sort",
             command=self._reset_sort,
-            width=115,
             height=36,
+            corner_radius=9,
+            fg_color="transparent",
+            hover_color=ACCENT_SOFT,
+            border_width=1,
+            border_color=BORDER_COLOR,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         reset_sort_button.grid(
-            row=1,
+            row=2,
             column=4,
-            sticky="w",
-            pady=(10, 0),
+            sticky="ew",
+            padx=(5, 12),
+            pady=5,
         )
 
-        selection_label = ctk.CTkLabel(
-            master=folder_controls_frame,
-            text="Asset selection:",
+        selection_bar = ctk.CTkFrame(
+            master=filter_frame,
+            corner_radius=9,
+            fg_color=PANEL_BACKGROUND,
+        )
+
+        selection_bar.grid(
+            row=3,
+            column=0,
+            columnspan=5,
+            sticky="ew",
+            padx=12,
+            pady=(6, 12),
+        )
+
+        selection_bar.grid_columnconfigure(
+            0,
+            weight=1,
+        )
+
+        selection_hint = ctk.CTkLabel(
+            master=selection_bar,
+            text="Selection controls",
             font=ctk.CTkFont(
-                size=13,
+                size=12,
                 weight="bold",
             ),
-        )
-
-        selection_label.grid(
-            row=2,
-            column=0,
-            padx=(0, 8),
-            pady=(10, 0),
-        )
-
-        self.selection_count_label = ctk.CTkLabel(
-            master=folder_controls_frame,
-            text="0 of 0 selected",
-            font=ctk.CTkFont(
-                size=13,
-            ),
+            text_color=MUTED_TEXT,
             anchor="w",
         )
 
-        self.selection_count_label.grid(
-            row=2,
-            column=1,
+        selection_hint.grid(
+            row=0,
+            column=0,
             sticky="w",
-            padx=(0, 12),
-            pady=(10, 0),
+            padx=12,
+            pady=8,
         )
 
         select_visible_button = ctk.CTkButton(
-            master=folder_controls_frame,
-            text="Select Visible",
+            master=selection_bar,
+            text="Select visible",
             command=self._select_visible_assets,
-            width=125,
-            height=36,
+            width=110,
+            height=32,
+            corner_radius=8,
+            fg_color="transparent",
+            hover_color=ACCENT_SOFT,
+            border_width=1,
+            border_color=BORDER_COLOR,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         select_visible_button.grid(
-            row=2,
-            column=2,
-            padx=(0, 8),
-            pady=(10, 0),
+            row=0,
+            column=1,
+            padx=(6, 4),
+            pady=8,
         )
 
         invert_visible_button = ctk.CTkButton(
-            master=folder_controls_frame,
-            text="Invert Visible",
+            master=selection_bar,
+            text="Invert visible",
             command=self._invert_visible_selection,
-            width=125,
-            height=36,
+            width=110,
+            height=32,
+            corner_radius=8,
+            fg_color="transparent",
+            hover_color=ACCENT_SOFT,
+            border_width=1,
+            border_color=BORDER_COLOR,
+            text_color=("#27332C", "#E6EEE9"),
         )
 
         invert_visible_button.grid(
-            row=2,
-            column=3,
-            padx=(0, 8),
-            pady=(10, 0),
+            row=0,
+            column=2,
+            padx=4,
+            pady=8,
         )
 
         clear_selection_button = ctk.CTkButton(
-            master=folder_controls_frame,
-            text="Clear Selection",
+            master=selection_bar,
+            text="Clear selection",
             command=self._clear_asset_selection,
-            width=130,
-            height=36,
+            width=115,
+            height=32,
+            corner_radius=8,
+            fg_color="transparent",
+            hover_color=DANGER_SOFT,
+            border_width=1,
+            border_color=BORDER_COLOR,
+            text_color=("#7A3030", "#F0B8B8"),
         )
 
         clear_selection_button.grid(
-            row=2,
-            column=4,
-            sticky="w",
-            pady=(10, 0),
-        )
-
-        clear_button = ctk.CTkButton(
-            master=filter_frame,
-            text="Clear Filters",
-            command=self._clear_filters,
-            width=115,
-            height=38,
-        )
-
-        clear_button.grid(
             row=0,
-            column=5,
-            padx=(6, 12),
-            pady=12,
+            column=3,
+            padx=(4, 8),
+            pady=8,
         )
 
     def _create_column_heading(
@@ -1466,9 +2045,10 @@ class AniccoliApp(ctk.CTk):
             master=parent,
             text=text,
             font=ctk.CTkFont(
-                size=13,
+                size=10,
                 weight="bold",
             ),
+            text_color=MUTED_TEXT,
             anchor="w",
         )
 
@@ -1477,7 +2057,7 @@ class AniccoliApp(ctk.CTk):
             column=column,
             sticky="ew",
             padx=12,
-            pady=10,
+            pady=9,
         )
 
     @property
@@ -2070,8 +2650,8 @@ class AniccoliApp(ctk.CTk):
 
         self.selection_count_label.configure(
             text=(
-                f"{summary.selected_assets} "
-                f"of {summary.total_assets} selected"
+                f"{summary.selected_assets} / "
+                f"{summary.total_assets}"
             ),
         )
 
@@ -2321,7 +2901,7 @@ class AniccoliApp(ctk.CTk):
         )
 
         self.selection_count_label.configure(
-            text="0 of 0 selected",
+            text="0 / 0",
         )
 
         self.preview_button.configure(
@@ -2429,7 +3009,9 @@ class AniccoliApp(ctk.CTk):
             text=message,
             font=ctk.CTkFont(
                 size=14,
+                weight="bold",
             ),
+            text_color=MUTED_TEXT,
             justify="center",
         )
 
@@ -2452,53 +3034,37 @@ class AniccoliApp(ctk.CTk):
         asset: AssetFile,
         row_number: int,
     ) -> None:
-        """Create one row representing a scanned asset."""
+        """Create one polished row representing a scanned asset."""
+        row_color = (
+            ROW_BACKGROUND
+            if row_number % 2 == 0
+            else ROW_ALT_BACKGROUND
+        )
+
         row_frame = ctk.CTkFrame(
             master=self.results_scroll_frame,
-            corner_radius=8,
+            corner_radius=10,
+            fg_color=row_color,
+            border_width=1,
+            border_color=BORDER_COLOR,
         )
 
         row_frame.grid(
             row=row_number,
             column=0,
             sticky="ew",
-            pady=(0, 6),
+            pady=(0, 7),
         )
 
-        row_frame.grid_columnconfigure(
-            0,
-            weight=0,
-        )
-
-        row_frame.grid_columnconfigure(
-            1,
-            weight=3,
-        )
-
-        row_frame.grid_columnconfigure(
-            2,
-            weight=2,
-        )
-
-        row_frame.grid_columnconfigure(
-            3,
-            weight=1,
-        )
-
-        row_frame.grid_columnconfigure(
-            4,
-            weight=2,
-        )
-
-        row_frame.grid_columnconfigure(
-            5,
-            weight=0,
-        )
+        row_frame.grid_columnconfigure(0, weight=0)
+        row_frame.grid_columnconfigure(1, weight=3)
+        row_frame.grid_columnconfigure(2, weight=2)
+        row_frame.grid_columnconfigure(3, weight=1)
+        row_frame.grid_columnconfigure(4, weight=2)
+        row_frame.grid_columnconfigure(5, weight=0)
 
         selection_var = ctk.BooleanVar(
-            value=self.asset_selection.contains(
-                asset
-            ),
+            value=self.asset_selection.contains(asset),
         )
 
         selection_checkbox = ctk.CTkCheckBox(
@@ -2508,6 +3074,8 @@ class AniccoliApp(ctk.CTk):
             onvalue=True,
             offvalue=False,
             width=24,
+            fg_color=ACCENT_COLOR,
+            hover_color=ACCENT_HOVER,
             command=lambda: self._set_asset_selected(
                 asset,
                 selection_var.get(),
@@ -2517,74 +3085,148 @@ class AniccoliApp(ctk.CTk):
         selection_checkbox.grid(
             row=0,
             column=0,
+            rowspan=2,
             padx=(12, 4),
+            pady=12,
+        )
+
+        parent_path = asset.relative_path.parent
+        parent_text = (
+            "Project root"
+            if parent_path == Path(".")
+            else str(parent_path)
+        )
+
+        file_name_label = ctk.CTkLabel(
+            master=row_frame,
+            text=asset.file_name,
+            font=ctk.CTkFont(
+                size=12,
+                weight="bold",
+            ),
+            anchor="w",
+        )
+
+        file_name_label.grid(
+            row=0,
+            column=1,
+            sticky="ew",
+            padx=12,
+            pady=(10, 1),
+        )
+
+        path_label = ctk.CTkLabel(
+            master=row_frame,
+            text=parent_text,
+            font=ctk.CTkFont(
+                size=10,
+            ),
+            text_color=MUTED_TEXT,
+            anchor="w",
+        )
+
+        path_label.grid(
+            row=1,
+            column=1,
+            sticky="ew",
+            padx=12,
+            pady=(0, 10),
+        )
+
+        category_label = ctk.CTkLabel(
+            master=row_frame,
+            text=str(asset.category),
+            font=ctk.CTkFont(
+                size=11,
+                weight="bold",
+            ),
+            fg_color=ACCENT_SOFT,
+            text_color=ACCENT_COLOR,
+            corner_radius=10,
+        )
+
+        category_label.grid(
+            row=0,
+            column=2,
+            rowspan=2,
+            sticky="w",
+            padx=12,
+            pady=12,
+            ipadx=8,
+            ipady=3,
+        )
+
+        size_label = ctk.CTkLabel(
+            master=row_frame,
+            text=asset.size_text,
+            font=ctk.CTkFont(
+                size=12,
+                weight="bold",
+            ),
+            anchor="w",
+        )
+
+        size_label.grid(
+            row=0,
+            column=3,
+            rowspan=2,
+            sticky="ew",
+            padx=12,
+            pady=12,
+        )
+
+        planned_destination = build_destination_folder(
+            asset=asset,
+            options=self._build_organization_options(),
+        )
+
+        destination_label = ctk.CTkLabel(
+            master=row_frame,
+            text=str(planned_destination),
+            font=ctk.CTkFont(
+                size=11,
+            ),
+            text_color=MUTED_TEXT,
+            anchor="w",
+            justify="left",
+            wraplength=250,
+        )
+
+        destination_label.grid(
+            row=0,
+            column=4,
+            rowspan=2,
+            sticky="ew",
+            padx=12,
             pady=10,
         )
-
-        planned_destination = (
-            build_destination_folder(
-                asset=asset,
-                options=(
-                    self._build_organization_options()
-                ),
-            )
-        )
-
-        values = (
-            str(
-                asset.relative_path
-            ),
-            str(
-                asset.category
-            ),
-            asset.size_text,
-            str(
-                planned_destination
-            ),
-        )
-
-        for column, value in enumerate(
-            values,
-            start=1,
-        ):
-            value_label = ctk.CTkLabel(
-                master=row_frame,
-                text=value,
-                font=ctk.CTkFont(
-                    size=12,
-                ),
-                anchor="w",
-                justify="left",
-            )
-
-            value_label.grid(
-                row=0,
-                column=column,
-                sticky="ew",
-                padx=12,
-                pady=10,
-            )
 
         reveal_button = ctk.CTkButton(
             master=row_frame,
             text="Reveal",
             command=lambda selected_asset=asset: (
-                self._reveal_asset_in_file_manager(
-                    selected_asset
-                )
+                self._reveal_asset_in_file_manager(selected_asset)
             ),
-            width=80,
-            height=30,
+            width=78,
+            height=31,
+            corner_radius=8,
+            fg_color="transparent",
+            hover_color=ACCENT_SOFT,
+            border_width=1,
+            border_color=BORDER_COLOR,
+            text_color=("#27332C", "#E6EEE9"),
             font=ctk.CTkFont(
-                size=12,
+                size=11,
+                weight="bold",
             ),
         )
 
         reveal_button.grid(
             row=0,
             column=5,
+            rowspan=2,
             padx=(6, 12),
-            pady=8,
+            pady=12,
         )
 
     def _reveal_asset_in_file_manager(
