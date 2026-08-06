@@ -374,10 +374,551 @@ class NaturalScrollableFrame(_OriginalCTkScrollableFrame):
 ctk.CTkScrollableFrame = NaturalScrollableFrame
 
 
-APP_NAME = "Aniccoli"
-APP_VERSION = "1.0.0"
 
-APP_STAGE = "RELEASE"
+LANGUAGE_LABELS = {
+    "en": "English",
+    "ms": "Bahasa Melayu",
+    "zh": "简体中文",
+    "ja": "日本語",
+}
+
+TRANSLATIONS: dict[str, dict[str, str]] = {
+    "en": {
+        "language": "Language",
+        "workspace_title": "Asset workspace",
+        "workspace_subtitle": "Review first, then organize with safe undo and restoration tools.",
+        "help_shortcuts": "Help & shortcuts",
+        "project": "PROJECT",
+        "selected_folder": "Selected folder",
+        "no_folder": "No folder selected",
+        "choose_project": "Choose project folder",
+        "include_subfolders": "Include subfolders",
+        "scan_project": "Scan project",
+        "scanning": "Scanning...",
+        "workflow": "WORKFLOW",
+        "preview_organization": "Preview organization",
+        "analyze_duplicates": "Analyze duplicates",
+        "analyzing": "Analyzing...",
+        "organization": "ORGANIZATION",
+        "date_grouping": "Date grouping",
+        "date_source": "Date source",
+        "tools_recovery": "TOOLS & RECOVERY",
+        "statistics": "Statistics",
+        "calculating": "Calculating...",
+        "asset_health": "Asset health",
+        "auditing": "Auditing...",
+        "export_report": "Export report",
+        "exporting": "Exporting...",
+        "undo_organize": "Undo organize",
+        "undoing": "Undoing...",
+        "status": "STATUS",
+        "choose_begin": "Choose a folder to begin.",
+        "files_found": "FILES FOUND",
+        "files_scan": "Files in the current scan",
+        "combined_size": "COMBINED SIZE",
+        "total_size": "Total detected asset size",
+        "categories": "CATEGORIES",
+        "asset_groups": "Detected asset groups",
+        "selected": "SELECTED",
+        "selected_use": "Used for preview and export",
+        "scanned_assets": "Scanned assets",
+        "results_hint": "Filter and select the files used by organization and reports.",
+        "showing_files": "Showing {visible} of {total} files",
+        "search_placeholder": "Search assets, paths, categories, or folders…",
+        "clear_filters": "Clear filters",
+        "quick_filters": "Quick filters",
+        "reset_sort": "Reset sort",
+        "selection_controls": "Selection controls",
+        "select_visible": "Select visible",
+        "invert_visible": "Invert visible",
+        "clear_selection": "Clear selection",
+        "use": "USE",
+        "asset": "ASSET",
+        "category": "CATEGORY",
+        "size": "SIZE",
+        "planned_destination": "PLANNED DESTINATION",
+        "action": "ACTION",
+        "empty_initial": "No scan results yet.\nChoose a project folder from the sidebar.",
+        "empty_folder_selected": "Folder selected.\nClick Scan Project to inspect its assets.",
+        "empty_no_files": "No supported or visible files were found.",
+        "empty_no_match": "No assets match the current filters.",
+        "project_root": "Project root",
+        "reveal": "Reveal",
+        "folder_dialog": "Select a 3D project folder",
+        "folder_selected_status": "Folder selected. Click Scan Project to inspect its assets.",
+        "restored_folder_status": "Previous project folder restored. Click Scan Project to inspect its assets.",
+        "choose_first": "Please choose a project folder first.",
+        "scanning_status": "Scanning the selected folder...",
+        "scan_failed": "Scan failed: {error}",
+        "scan_complete": "Scan complete. {count} file{suffix} found.",
+        "select_before_preview": "Select at least one asset before creating an organization preview.",
+        "scan_before_preview": "Scan a folder before creating a preview.",
+        "filters_updated": "Organization settings updated. Open Preview Organization to review the new destinations.",
+        "filter_error": "Filter error: {error}",
+        "cannot_reveal": "Cannot Reveal Asset",
+        "cannot_reveal_status": "Could not reveal asset: {error}",
+        "revealed_status": "Revealed asset in the system file manager: {name}",
+        "scan_before_health": "Scan a folder before opening Asset Health.",
+        "health_checking": "Checking the scanned project for asset health issues...",
+        "health_failed_title": "Asset Audit Failed",
+        "health_failed": "Asset audit failed: {error}",
+        "scan_before_stats": "Scan a folder before opening project statistics.",
+        "stats_calculating": "Calculating project statistics...",
+        "stats_failed_title": "Statistics Failed",
+        "stats_failed": "Statistics failed: {error}",
+        "project_statistics": "Project Statistics",
+        "scan_before_export": "Scan a folder before exporting a report.",
+        "select_before_export": "Select at least one asset before exporting.",
+        "export_title": "Export Aniccoli Asset Inventory",
+        "export_status": "Exporting the asset inventory report...",
+        "export_failed_title": "Report Export Failed",
+        "export_failed": "Report export failed: {error}",
+        "exported_title": "Report Exported",
+        "duplicate_before": "Scan a folder before analyzing duplicates.",
+        "duplicate_status": "Analyzing possible duplicates. Large files may take a moment...",
+        "duplicate_failed_title": "Duplicate Analysis Failed",
+        "duplicate_failed": "Duplicate analysis failed: {error}",
+        "preview_title": "Organization Preview",
+        "close_preview": "Close Preview",
+        "organize_files": "Organize Files",
+        "confirm_organization": "Confirm File Organization",
+        "organizing": "Organizing files...",
+        "organization_failed_title": "Organization Failed",
+        "organization_complete_title": "Organization Complete",
+        "organization_partial_title": "Organization Partially Complete",
+        "undo_title": "Undo Last Organization",
+        "restoring": "Restoring files to their original locations...",
+        "nothing_undo": "Nothing to Undo",
+        "undo_failed_title": "Undo Failed",
+        "undo_complete_title": "Undo Complete",
+        "undo_partial_title": "Undo Partially Complete",
+        "ready": "Ready",
+        "renamed": "Renamed",
+        "from": "From",
+        "to": "To",
+        "language_changed": "Language changed to {language}.",
+        "help_title": "Help & shortcuts",
+        "help_intro": "Aniccoli helps you scan, review, organize, audit, and recover 3D project assets safely.",
+        "help_workflow": "Recommended workflow",
+        "help_workflow_body": "1. Choose a project folder.\n2. Scan the project.\n3. Search, filter, and select assets.\n4. Preview organization.\n5. Confirm only after reviewing destinations.",
+        "help_safety": "Safety",
+        "help_safety_body": "Organization uses previews and undo history. Duplicate cleanup uses quarantine instead of permanent deletion.",
+        "help_keys": "Keyboard shortcuts",
+        "close": "Close",
+    },
+    "ms": {
+        "language": "Bahasa",
+        "workspace_title": "Ruang kerja aset",
+        "workspace_subtitle": "Semak dahulu, kemudian susun dengan alat buat asal dan pemulihan yang selamat.",
+        "help_shortcuts": "Bantuan & pintasan",
+        "project": "PROJEK",
+        "selected_folder": "Folder dipilih",
+        "no_folder": "Tiada folder dipilih",
+        "choose_project": "Pilih folder projek",
+        "include_subfolders": "Sertakan subfolder",
+        "scan_project": "Imbas projek",
+        "scanning": "Mengimbas...",
+        "workflow": "ALIRAN KERJA",
+        "preview_organization": "Pratonton susunan",
+        "analyze_duplicates": "Analisis pendua",
+        "analyzing": "Menganalisis...",
+        "organization": "PENYUSUNAN",
+        "date_grouping": "Pengumpulan tarikh",
+        "date_source": "Sumber tarikh",
+        "tools_recovery": "ALAT & PEMULIHAN",
+        "statistics": "Statistik",
+        "calculating": "Mengira...",
+        "asset_health": "Kesihatan aset",
+        "auditing": "Mengaudit...",
+        "export_report": "Eksport laporan",
+        "exporting": "Mengeksport...",
+        "undo_organize": "Buat asal susunan",
+        "undoing": "Membuat asal...",
+        "status": "STATUS",
+        "choose_begin": "Pilih folder untuk bermula.",
+        "files_found": "FAIL DITEMUI",
+        "files_scan": "Fail dalam imbasan semasa",
+        "combined_size": "SAIZ GABUNGAN",
+        "total_size": "Jumlah saiz aset dikesan",
+        "categories": "KATEGORI",
+        "asset_groups": "Kumpulan aset dikesan",
+        "selected": "DIPILIH",
+        "selected_use": "Digunakan untuk pratonton dan eksport",
+        "scanned_assets": "Aset diimbas",
+        "results_hint": "Tapis dan pilih fail untuk penyusunan dan laporan.",
+        "showing_files": "Memaparkan {visible} daripada {total} fail",
+        "search_placeholder": "Cari aset, laluan, kategori atau folder…",
+        "clear_filters": "Kosongkan penapis",
+        "quick_filters": "Penapis pantas",
+        "reset_sort": "Tetapkan semula susunan",
+        "selection_controls": "Kawalan pilihan",
+        "select_visible": "Pilih yang kelihatan",
+        "invert_visible": "Songsangkan pilihan",
+        "clear_selection": "Kosongkan pilihan",
+        "use": "GUNA",
+        "asset": "ASET",
+        "category": "KATEGORI",
+        "size": "SAIZ",
+        "planned_destination": "DESTINASI DIRANCANG",
+        "action": "TINDAKAN",
+        "empty_initial": "Belum ada hasil imbasan.\nPilih folder projek dari bar sisi.",
+        "empty_folder_selected": "Folder dipilih.\nKlik Imbas projek untuk memeriksa aset.",
+        "empty_no_files": "Tiada fail yang disokong atau kelihatan ditemui.",
+        "empty_no_match": "Tiada aset sepadan dengan penapis semasa.",
+        "project_root": "Akar projek",
+        "reveal": "Tunjukkan",
+        "folder_dialog": "Pilih folder projek 3D",
+        "folder_selected_status": "Folder dipilih. Klik Imbas projek untuk memeriksa aset.",
+        "restored_folder_status": "Folder projek sebelumnya dipulihkan. Klik Imbas projek untuk memeriksa aset.",
+        "choose_first": "Sila pilih folder projek dahulu.",
+        "scanning_status": "Sedang mengimbas folder yang dipilih...",
+        "scan_failed": "Imbasan gagal: {error}",
+        "scan_complete": "Imbasan selesai. {count} fail ditemui.",
+        "select_before_preview": "Pilih sekurang-kurangnya satu aset sebelum membuat pratonton susunan.",
+        "scan_before_preview": "Imbas folder sebelum membuat pratonton.",
+        "filters_updated": "Tetapan penyusunan dikemas kini. Buka Pratonton susunan untuk menyemak destinasi baharu.",
+        "filter_error": "Ralat penapis: {error}",
+        "cannot_reveal": "Tidak dapat menunjukkan aset",
+        "cannot_reveal_status": "Tidak dapat menunjukkan aset: {error}",
+        "revealed_status": "Aset ditunjukkan dalam pengurus fail sistem: {name}",
+        "scan_before_health": "Imbas folder sebelum membuka Kesihatan aset.",
+        "health_checking": "Sedang memeriksa isu kesihatan aset projek...",
+        "health_failed_title": "Audit aset gagal",
+        "health_failed": "Audit aset gagal: {error}",
+        "scan_before_stats": "Imbas folder sebelum membuka statistik projek.",
+        "stats_calculating": "Sedang mengira statistik projek...",
+        "stats_failed_title": "Statistik gagal",
+        "stats_failed": "Statistik gagal: {error}",
+        "project_statistics": "Statistik projek",
+        "scan_before_export": "Imbas folder sebelum mengeksport laporan.",
+        "select_before_export": "Pilih sekurang-kurangnya satu aset sebelum mengeksport.",
+        "export_title": "Eksport inventori aset Aniccoli",
+        "export_status": "Sedang mengeksport laporan inventori aset...",
+        "export_failed_title": "Eksport laporan gagal",
+        "export_failed": "Eksport laporan gagal: {error}",
+        "exported_title": "Laporan dieksport",
+        "duplicate_before": "Imbas folder sebelum menganalisis pendua.",
+        "duplicate_status": "Sedang menganalisis pendua. Fail besar mungkin mengambil masa...",
+        "duplicate_failed_title": "Analisis pendua gagal",
+        "duplicate_failed": "Analisis pendua gagal: {error}",
+        "preview_title": "Pratonton penyusunan",
+        "close_preview": "Tutup pratonton",
+        "organize_files": "Susun fail",
+        "confirm_organization": "Sahkan penyusunan fail",
+        "organizing": "Sedang menyusun fail...",
+        "organization_failed_title": "Penyusunan gagal",
+        "organization_complete_title": "Penyusunan selesai",
+        "organization_partial_title": "Penyusunan separa selesai",
+        "undo_title": "Buat asal penyusunan terakhir",
+        "restoring": "Sedang memulihkan fail ke lokasi asal...",
+        "nothing_undo": "Tiada yang boleh dibuat asal",
+        "undo_failed_title": "Buat asal gagal",
+        "undo_complete_title": "Buat asal selesai",
+        "undo_partial_title": "Buat asal separa selesai",
+        "ready": "Sedia",
+        "renamed": "Dinamakan semula",
+        "from": "Dari",
+        "to": "Ke",
+        "language_changed": "Bahasa ditukar kepada {language}.",
+        "help_title": "Bantuan & pintasan",
+        "help_intro": "Aniccoli membantu anda mengimbas, menyemak, menyusun, mengaudit dan memulihkan aset projek 3D dengan selamat.",
+        "help_workflow": "Aliran kerja disyorkan",
+        "help_workflow_body": "1. Pilih folder projek.\n2. Imbas projek.\n3. Cari, tapis dan pilih aset.\n4. Pratonton penyusunan.\n5. Sahkan selepas menyemak destinasi.",
+        "help_safety": "Keselamatan",
+        "help_safety_body": "Penyusunan menggunakan pratonton dan sejarah buat asal. Pembersihan pendua menggunakan kuarantin, bukan pemadaman kekal.",
+        "help_keys": "Pintasan papan kekunci",
+        "close": "Tutup",
+    },
+    "zh": {
+        "language": "语言",
+        "workspace_title": "素材工作区",
+        "workspace_subtitle": "先检查，再使用安全的撤销与恢复工具整理素材。",
+        "help_shortcuts": "帮助与快捷键",
+        "project": "项目",
+        "selected_folder": "已选文件夹",
+        "no_folder": "尚未选择文件夹",
+        "choose_project": "选择项目文件夹",
+        "include_subfolders": "包含子文件夹",
+        "scan_project": "扫描项目",
+        "scanning": "扫描中...",
+        "workflow": "工作流程",
+        "preview_organization": "预览整理方案",
+        "analyze_duplicates": "分析重复文件",
+        "analyzing": "分析中...",
+        "organization": "整理设置",
+        "date_grouping": "日期分组",
+        "date_source": "日期来源",
+        "tools_recovery": "工具与恢复",
+        "statistics": "统计",
+        "calculating": "计算中...",
+        "asset_health": "素材健康检查",
+        "auditing": "检查中...",
+        "export_report": "导出报告",
+        "exporting": "导出中...",
+        "undo_organize": "撤销整理",
+        "undoing": "撤销中...",
+        "status": "状态",
+        "choose_begin": "请选择文件夹开始。",
+        "files_found": "找到的文件",
+        "files_scan": "当前扫描中的文件",
+        "combined_size": "总大小",
+        "total_size": "检测到的素材总大小",
+        "categories": "类别",
+        "asset_groups": "检测到的素材类别",
+        "selected": "已选择",
+        "selected_use": "用于预览和导出",
+        "scanned_assets": "已扫描素材",
+        "results_hint": "筛选并选择用于整理和报告的文件。",
+        "showing_files": "显示 {visible} / {total} 个文件",
+        "search_placeholder": "搜索素材、路径、类别或文件夹…",
+        "clear_filters": "清除筛选",
+        "quick_filters": "快速筛选",
+        "reset_sort": "重置排序",
+        "selection_controls": "选择控制",
+        "select_visible": "选择可见项",
+        "invert_visible": "反选可见项",
+        "clear_selection": "清除选择",
+        "use": "使用",
+        "asset": "素材",
+        "category": "类别",
+        "size": "大小",
+        "planned_destination": "计划目标位置",
+        "action": "操作",
+        "empty_initial": "尚无扫描结果。\n请从侧边栏选择项目文件夹。",
+        "empty_folder_selected": "已选择文件夹。\n点击“扫描项目”检查素材。",
+        "empty_no_files": "未找到受支持或可见的文件。",
+        "empty_no_match": "没有素材符合当前筛选条件。",
+        "project_root": "项目根目录",
+        "reveal": "显示位置",
+        "folder_dialog": "选择 3D 项目文件夹",
+        "folder_selected_status": "已选择文件夹。点击“扫描项目”检查素材。",
+        "restored_folder_status": "已恢复上次的项目文件夹。点击“扫描项目”检查素材。",
+        "choose_first": "请先选择项目文件夹。",
+        "scanning_status": "正在扫描所选文件夹...",
+        "scan_failed": "扫描失败：{error}",
+        "scan_complete": "扫描完成。找到 {count} 个文件。",
+        "select_before_preview": "创建整理预览前，请至少选择一个素材。",
+        "scan_before_preview": "创建预览前请先扫描文件夹。",
+        "filters_updated": "整理设置已更新。请打开“预览整理方案”检查新的目标位置。",
+        "filter_error": "筛选错误：{error}",
+        "cannot_reveal": "无法显示素材",
+        "cannot_reveal_status": "无法显示素材：{error}",
+        "revealed_status": "已在系统文件管理器中显示素材：{name}",
+        "scan_before_health": "打开素材健康检查前请先扫描文件夹。",
+        "health_checking": "正在检查项目素材健康问题...",
+        "health_failed_title": "素材检查失败",
+        "health_failed": "素材检查失败：{error}",
+        "scan_before_stats": "打开项目统计前请先扫描文件夹。",
+        "stats_calculating": "正在计算项目统计...",
+        "stats_failed_title": "统计失败",
+        "stats_failed": "统计失败：{error}",
+        "project_statistics": "项目统计",
+        "scan_before_export": "导出报告前请先扫描文件夹。",
+        "select_before_export": "导出前请至少选择一个素材。",
+        "export_title": "导出 Aniccoli 素材清单",
+        "export_status": "正在导出素材清单报告...",
+        "export_failed_title": "报告导出失败",
+        "export_failed": "报告导出失败：{error}",
+        "exported_title": "报告已导出",
+        "duplicate_before": "分析重复文件前请先扫描文件夹。",
+        "duplicate_status": "正在分析可能的重复文件，大文件可能需要一些时间...",
+        "duplicate_failed_title": "重复文件分析失败",
+        "duplicate_failed": "重复文件分析失败：{error}",
+        "preview_title": "整理预览",
+        "close_preview": "关闭预览",
+        "organize_files": "整理文件",
+        "confirm_organization": "确认整理文件",
+        "organizing": "正在整理文件...",
+        "organization_failed_title": "整理失败",
+        "organization_complete_title": "整理完成",
+        "organization_partial_title": "部分整理完成",
+        "undo_title": "撤销上次整理",
+        "restoring": "正在将文件恢复到原始位置...",
+        "nothing_undo": "没有可撤销的操作",
+        "undo_failed_title": "撤销失败",
+        "undo_complete_title": "撤销完成",
+        "undo_partial_title": "部分撤销完成",
+        "ready": "就绪",
+        "renamed": "已重命名",
+        "from": "来源",
+        "to": "目标",
+        "language_changed": "语言已切换为{language}。",
+        "help_title": "帮助与快捷键",
+        "help_intro": "Aniccoli 帮助你安全地扫描、检查、整理、审核和恢复 3D 项目素材。",
+        "help_workflow": "建议工作流程",
+        "help_workflow_body": "1. 选择项目文件夹。\n2. 扫描项目。\n3. 搜索、筛选并选择素材。\n4. 预览整理方案。\n5. 检查目标位置后再确认。",
+        "help_safety": "安全机制",
+        "help_safety_body": "整理操作使用预览和撤销记录。重复文件清理使用隔离区，而不是永久删除。",
+        "help_keys": "键盘快捷键",
+        "close": "关闭",
+    },
+    "ja": {
+        "language": "言語",
+        "workspace_title": "アセットワークスペース",
+        "workspace_subtitle": "まず確認し、安全な元に戻す・復元ツールで整理します。",
+        "help_shortcuts": "ヘルプとショートカット",
+        "project": "プロジェクト",
+        "selected_folder": "選択中のフォルダ",
+        "no_folder": "フォルダ未選択",
+        "choose_project": "プロジェクトフォルダを選択",
+        "include_subfolders": "サブフォルダを含める",
+        "scan_project": "プロジェクトをスキャン",
+        "scanning": "スキャン中...",
+        "workflow": "ワークフロー",
+        "preview_organization": "整理内容をプレビュー",
+        "analyze_duplicates": "重複を分析",
+        "analyzing": "分析中...",
+        "organization": "整理設定",
+        "date_grouping": "日付グループ",
+        "date_source": "日付の参照元",
+        "tools_recovery": "ツールと復元",
+        "statistics": "統計",
+        "calculating": "計算中...",
+        "asset_health": "アセット健全性",
+        "auditing": "監査中...",
+        "export_report": "レポートを書き出す",
+        "exporting": "書き出し中...",
+        "undo_organize": "整理を元に戻す",
+        "undoing": "元に戻しています...",
+        "status": "ステータス",
+        "choose_begin": "開始するフォルダを選択してください。",
+        "files_found": "検出ファイル",
+        "files_scan": "現在のスキャン内のファイル",
+        "combined_size": "合計サイズ",
+        "total_size": "検出アセットの合計サイズ",
+        "categories": "カテゴリ",
+        "asset_groups": "検出されたアセット分類",
+        "selected": "選択済み",
+        "selected_use": "プレビューと書き出しに使用",
+        "scanned_assets": "スキャン済みアセット",
+        "results_hint": "整理とレポートに使用するファイルを絞り込み、選択します。",
+        "showing_files": "{total} 件中 {visible} 件を表示",
+        "search_placeholder": "アセット、パス、カテゴリ、フォルダを検索…",
+        "clear_filters": "フィルターを解除",
+        "quick_filters": "クイックフィルター",
+        "reset_sort": "並び順をリセット",
+        "selection_controls": "選択操作",
+        "select_visible": "表示中を選択",
+        "invert_visible": "表示中を反転",
+        "clear_selection": "選択を解除",
+        "use": "使用",
+        "asset": "アセット",
+        "category": "カテゴリ",
+        "size": "サイズ",
+        "planned_destination": "予定の保存先",
+        "action": "操作",
+        "empty_initial": "スキャン結果はまだありません。\nサイドバーからプロジェクトフォルダを選択してください。",
+        "empty_folder_selected": "フォルダを選択しました。\n「プロジェクトをスキャン」をクリックしてください。",
+        "empty_no_files": "対応する表示可能なファイルが見つかりませんでした。",
+        "empty_no_match": "現在のフィルターに一致するアセットはありません。",
+        "project_root": "プロジェクトルート",
+        "reveal": "場所を表示",
+        "folder_dialog": "3D プロジェクトフォルダを選択",
+        "folder_selected_status": "フォルダを選択しました。「プロジェクトをスキャン」をクリックしてください。",
+        "restored_folder_status": "前回のプロジェクトフォルダを復元しました。「プロジェクトをスキャン」をクリックしてください。",
+        "choose_first": "先にプロジェクトフォルダを選択してください。",
+        "scanning_status": "選択したフォルダをスキャンしています...",
+        "scan_failed": "スキャンに失敗しました：{error}",
+        "scan_complete": "スキャン完了。{count} 件のファイルが見つかりました。",
+        "select_before_preview": "整理プレビューを作成する前に、1つ以上のアセットを選択してください。",
+        "scan_before_preview": "プレビューを作成する前にフォルダをスキャンしてください。",
+        "filters_updated": "整理設定を更新しました。新しい保存先をプレビューで確認してください。",
+        "filter_error": "フィルターエラー：{error}",
+        "cannot_reveal": "アセットの場所を表示できません",
+        "cannot_reveal_status": "アセットの場所を表示できません：{error}",
+        "revealed_status": "システムのファイルマネージャーで表示しました：{name}",
+        "scan_before_health": "アセット健全性を開く前にフォルダをスキャンしてください。",
+        "health_checking": "プロジェクトのアセット健全性を確認しています...",
+        "health_failed_title": "アセット監査に失敗しました",
+        "health_failed": "アセット監査に失敗しました：{error}",
+        "scan_before_stats": "プロジェクト統計を開く前にフォルダをスキャンしてください。",
+        "stats_calculating": "プロジェクト統計を計算しています...",
+        "stats_failed_title": "統計の計算に失敗しました",
+        "stats_failed": "統計に失敗しました：{error}",
+        "project_statistics": "プロジェクト統計",
+        "scan_before_export": "レポートを書き出す前にフォルダをスキャンしてください。",
+        "select_before_export": "書き出す前に1つ以上のアセットを選択してください。",
+        "export_title": "Aniccoli アセット一覧を書き出す",
+        "export_status": "アセット一覧レポートを書き出しています...",
+        "export_failed_title": "レポートの書き出しに失敗しました",
+        "export_failed": "レポートの書き出しに失敗しました：{error}",
+        "exported_title": "レポートを書き出しました",
+        "duplicate_before": "重複を分析する前にフォルダをスキャンしてください。",
+        "duplicate_status": "重複候補を分析しています。大きなファイルは時間がかかる場合があります...",
+        "duplicate_failed_title": "重複分析に失敗しました",
+        "duplicate_failed": "重複分析に失敗しました：{error}",
+        "preview_title": "整理プレビュー",
+        "close_preview": "プレビューを閉じる",
+        "organize_files": "ファイルを整理",
+        "confirm_organization": "ファイル整理の確認",
+        "organizing": "ファイルを整理しています...",
+        "organization_failed_title": "整理に失敗しました",
+        "organization_complete_title": "整理が完了しました",
+        "organization_partial_title": "一部の整理が完了しました",
+        "undo_title": "前回の整理を元に戻す",
+        "restoring": "ファイルを元の場所へ復元しています...",
+        "nothing_undo": "元に戻せる操作はありません",
+        "undo_failed_title": "元に戻せませんでした",
+        "undo_complete_title": "元に戻しました",
+        "undo_partial_title": "一部を元に戻しました",
+        "ready": "準備完了",
+        "renamed": "名前変更",
+        "from": "移動元",
+        "to": "移動先",
+        "language_changed": "言語を{language}に変更しました。",
+        "help_title": "ヘルプとショートカット",
+        "help_intro": "Aniccoli は 3D プロジェクトのアセットを安全にスキャン、確認、整理、監査、復元するためのツールです。",
+        "help_workflow": "おすすめの流れ",
+        "help_workflow_body": "1. プロジェクトフォルダを選択。\n2. プロジェクトをスキャン。\n3. 検索、絞り込み、選択。\n4. 整理内容をプレビュー。\n5. 保存先を確認してから実行。",
+        "help_safety": "安全機能",
+        "help_safety_body": "整理にはプレビューと元に戻す履歴を使用します。重複の整理は永久削除ではなく隔離を使用します。",
+        "help_keys": "キーボードショートカット",
+        "close": "閉じる",
+    },
+}
+
+LANGUAGE_SETTINGS_PATH = (
+    Path.home()
+    / ".aniccoli"
+    / "ui_language.txt"
+)
+
+
+def _load_ui_language() -> str:
+    """Load the saved interface language."""
+    try:
+        language_code = LANGUAGE_SETTINGS_PATH.read_text(
+            encoding="utf-8"
+        ).strip()
+    except OSError:
+        return "en"
+
+    return (
+        language_code
+        if language_code in TRANSLATIONS
+        else "en"
+    )
+
+
+def _save_ui_language(language_code: str) -> None:
+    """Save the selected interface language."""
+    try:
+        LANGUAGE_SETTINGS_PATH.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+        LANGUAGE_SETTINGS_PATH.write_text(
+            language_code,
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
+APP_NAME = "Aniccoli"
+APP_VERSION = "1.0.0-rc.2"
+
+APP_STAGE = "RELEASE CANDIDATE"
 
 APP_BACKGROUND = ("#F3F6F4", "#101512")
 SIDEBAR_BACKGROUND = ("#E9F0EB", "#151C18")
@@ -440,6 +981,13 @@ class AniccoliApp(ctk.CTk):
         super().__init__()
 
         self.preferences: AppPreferences = load_preferences()
+
+        self.language_code = _load_ui_language()
+        self.language_var = ctk.StringVar(
+            value=LANGUAGE_LABELS[
+                self.language_code
+            ],
+        )
 
         saved_project_path = self.preferences.last_project_path
 
@@ -546,6 +1094,132 @@ class AniccoliApp(ctk.CTk):
         self.protocol(
             "WM_DELETE_WINDOW",
             self._on_close,
+        )
+
+    def _t(
+        self,
+        key: str,
+        **values: object,
+    ) -> str:
+        """Return translated interface text."""
+        language = TRANSLATIONS.get(
+            self.language_code,
+            TRANSLATIONS["en"],
+        )
+
+        template = language.get(
+            key,
+            TRANSLATIONS["en"].get(
+                key,
+                key,
+            ),
+        )
+
+        try:
+            return template.format(
+                **values
+            )
+        except (
+            KeyError,
+            ValueError,
+        ):
+            return template
+
+    def _change_language(
+        self,
+        selected_label: str,
+    ) -> None:
+        """Change language and rebuild the main interface."""
+        selected_code = next(
+            (
+                code
+                for code, label in LANGUAGE_LABELS.items()
+                if label == selected_label
+            ),
+            "en",
+        )
+
+        if selected_code == self.language_code:
+            return
+
+        self.language_code = selected_code
+        self.language_var.set(
+            LANGUAGE_LABELS[
+                selected_code
+            ],
+        )
+
+        _save_ui_language(
+            selected_code
+        )
+
+        self.main_container.destroy()
+        self._create_interface()
+
+        if self.selected_folder is not None:
+            self.selected_folder_label.configure(
+                text=str(
+                    self.selected_folder
+                ),
+            )
+            self.scan_button.configure(
+                state="normal",
+            )
+
+        options = self._build_organization_options()
+        self.date_source_menu.configure(
+            state=(
+                "normal"
+                if options.uses_date_grouping
+                else "disabled"
+            ),
+        )
+
+        self._refresh_filter_options()
+
+        if self.scanned_assets:
+            self._display_assets()
+            self.duplicate_button.configure(
+                state="normal",
+            )
+            self.statistics_button.configure(
+                state="normal",
+            )
+            self.audit_button.configure(
+                state="normal",
+            )
+            self._update_selection_summary()
+        else:
+            self._reset_scan_results()
+            self._clear_result_rows()
+
+            if self.selected_folder is not None:
+                self.selected_folder_label.configure(
+                    text=str(
+                        self.selected_folder
+                    ),
+                )
+                self.scan_button.configure(
+                    state="normal",
+                )
+                empty_message = self._t(
+                    "empty_folder_selected"
+                )
+            else:
+                empty_message = self._t(
+                    "empty_initial"
+                )
+
+            self._show_empty_results_message(
+                empty_message
+            )
+
+        self._refresh_undo_button()
+        self.status_label.configure(
+            text=self._t(
+                "language_changed",
+                language=selected_label,
+            ),
         )
 
     def _configure_window(self) -> None:
@@ -751,7 +1425,7 @@ class AniccoliApp(ctk.CTk):
 
         heading_label = ctk.CTkLabel(
             master=workspace_header,
-            text="Asset workspace",
+            text=self._t("workspace_title"),
             font=ctk.CTkFont(
                 size=28,
                 weight="bold",
@@ -767,10 +1441,7 @@ class AniccoliApp(ctk.CTk):
 
         subtitle_label = ctk.CTkLabel(
             master=workspace_header,
-            text=(
-                "Review first, then organize with safe undo and "
-                "restoration tools."
-            ),
+            text=self._t("workspace_subtitle"),
             font=ctk.CTkFont(
                 size=13,
             ),
@@ -785,9 +1456,55 @@ class AniccoliApp(ctk.CTk):
             pady=(3, 0),
         )
 
+        language_frame = ctk.CTkFrame(
+            master=workspace_header,
+            fg_color="transparent",
+        )
+
+        language_frame.grid(
+            row=0,
+            column=1,
+            rowspan=2,
+            padx=(15, 8),
+        )
+
+        language_label = ctk.CTkLabel(
+            master=language_frame,
+            text=self._t("language"),
+            font=ctk.CTkFont(
+                size=10,
+                weight="bold",
+            ),
+            text_color=MUTED_TEXT,
+            anchor="w",
+        )
+
+        language_label.pack(
+            fill="x",
+            pady=(0, 3),
+        )
+
+        self.language_menu = ctk.CTkOptionMenu(
+            master=language_frame,
+            variable=self.language_var,
+            values=list(
+                LANGUAGE_LABELS.values()
+            ),
+            command=self._change_language,
+            width=145,
+            height=34,
+            corner_radius=9,
+            fg_color=CARD_BACKGROUND,
+            button_color=ACCENT_COLOR,
+            button_hover_color=ACCENT_HOVER,
+            text_color=("#27332C", "#E6EEE9"),
+        )
+
+        self.language_menu.pack()
+
         help_button = ctk.CTkButton(
             master=workspace_header,
-            text="Help & shortcuts",
+            text=self._t("help_shortcuts"),
             command=self._open_about_window,
             width=135,
             height=38,
@@ -801,7 +1518,7 @@ class AniccoliApp(ctk.CTk):
 
         help_button.grid(
             row=0,
-            column=1,
+            column=2,
             rowspan=2,
             padx=(15, 0),
         )
@@ -810,7 +1527,7 @@ class AniccoliApp(ctk.CTk):
         """Create the project workflow controls inside the sidebar."""
         project_section_label = ctk.CTkLabel(
             master=self.sidebar,
-            text="PROJECT",
+            text=self._t("project"),
             font=ctk.CTkFont(
                 size=11,
                 weight="bold",
@@ -850,7 +1567,7 @@ class AniccoliApp(ctk.CTk):
 
         selected_title = ctk.CTkLabel(
             master=project_card,
-            text="Selected folder",
+            text=self._t("selected_folder"),
             font=ctk.CTkFont(
                 size=12,
                 weight="bold",
@@ -869,7 +1586,7 @@ class AniccoliApp(ctk.CTk):
 
         self.selected_folder_label = ctk.CTkLabel(
             master=project_card,
-            text="No folder selected",
+            text=self._t("no_folder"),
             font=ctk.CTkFont(
                 size=13,
                 weight="bold",
@@ -889,7 +1606,7 @@ class AniccoliApp(ctk.CTk):
 
         choose_folder_button = ctk.CTkButton(
             master=project_card,
-            text="Choose project folder",
+            text=self._t("choose_project"),
             command=self._select_folder,
             height=39,
             corner_radius=10,
@@ -914,7 +1631,7 @@ class AniccoliApp(ctk.CTk):
 
         recursive_checkbox = ctk.CTkCheckBox(
             master=project_card,
-            text="Include subfolders",
+            text=self._t("include_subfolders"),
             variable=self.recursive_scan_var,
             onvalue=True,
             offvalue=False,
@@ -936,7 +1653,7 @@ class AniccoliApp(ctk.CTk):
 
         self.scan_button = ctk.CTkButton(
             master=project_card,
-            text="Scan project",
+            text=self._t("scan_project"),
             command=self._scan_selected_folder,
             height=42,
             state="disabled",
@@ -959,7 +1676,7 @@ class AniccoliApp(ctk.CTk):
 
         workflow_section_label = ctk.CTkLabel(
             master=self.sidebar,
-            text="WORKFLOW",
+            text=self._t("workflow"),
             font=ctk.CTkFont(
                 size=11,
                 weight="bold",
@@ -999,7 +1716,7 @@ class AniccoliApp(ctk.CTk):
 
         self.preview_button = ctk.CTkButton(
             master=workflow_card,
-            text="Preview organization",
+            text=self._t("preview_organization"),
             command=self._preview_organization,
             height=40,
             state="disabled",
@@ -1022,7 +1739,7 @@ class AniccoliApp(ctk.CTk):
 
         self.duplicate_button = ctk.CTkButton(
             master=workflow_card,
-            text="Analyze duplicates",
+            text=self._t("analyze_duplicates"),
             command=self._analyze_duplicates,
             height=38,
             state="disabled",
@@ -1044,7 +1761,7 @@ class AniccoliApp(ctk.CTk):
 
         organization_section_label = ctk.CTkLabel(
             master=self.sidebar,
-            text="ORGANIZATION",
+            text=self._t("organization"),
             font=ctk.CTkFont(
                 size=11,
                 weight="bold",
@@ -1084,7 +1801,7 @@ class AniccoliApp(ctk.CTk):
 
         grouping_label = ctk.CTkLabel(
             master=organization_card,
-            text="Date grouping",
+            text=self._t("date_grouping"),
             font=ctk.CTkFont(
                 size=12,
                 weight="bold",
@@ -1128,7 +1845,7 @@ class AniccoliApp(ctk.CTk):
 
         source_label = ctk.CTkLabel(
             master=organization_card,
-            text="Date source",
+            text=self._t("date_source"),
             font=ctk.CTkFont(
                 size=12,
                 weight="bold",
@@ -1173,7 +1890,7 @@ class AniccoliApp(ctk.CTk):
 
         tools_section_label = ctk.CTkLabel(
             master=self.sidebar,
-            text="TOOLS & RECOVERY",
+            text=self._t("tools_recovery"),
             font=ctk.CTkFont(
                 size=11,
                 weight="bold",
@@ -1214,7 +1931,7 @@ class AniccoliApp(ctk.CTk):
 
         self.statistics_button = ctk.CTkButton(
             master=tools_card,
-            text="Statistics",
+            text=self._t("statistics"),
             command=self._open_project_statistics,
             height=36,
             state="disabled",
@@ -1236,7 +1953,7 @@ class AniccoliApp(ctk.CTk):
 
         self.audit_button = ctk.CTkButton(
             master=tools_card,
-            text="Asset health",
+            text=self._t("asset_health"),
             command=self._open_asset_health_audit,
             height=36,
             state="disabled",
@@ -1258,7 +1975,7 @@ class AniccoliApp(ctk.CTk):
 
         self.export_button = ctk.CTkButton(
             master=tools_card,
-            text="Export report",
+            text=self._t("export_report"),
             command=self._export_inventory_report,
             height=36,
             state="disabled",
@@ -1280,7 +1997,7 @@ class AniccoliApp(ctk.CTk):
 
         self.undo_button = ctk.CTkButton(
             master=tools_card,
-            text="Undo organize",
+            text=self._t("undo_organize"),
             command=self._undo_last_organization,
             height=36,
             state="disabled",
@@ -1316,7 +2033,7 @@ class AniccoliApp(ctk.CTk):
 
         status_title = ctk.CTkLabel(
             master=status_card,
-            text="STATUS",
+            text=self._t("status"),
             font=ctk.CTkFont(
                 size=10,
                 weight="bold",
@@ -1333,7 +2050,7 @@ class AniccoliApp(ctk.CTk):
 
         self.status_label = ctk.CTkLabel(
             master=status_card,
-            text="Choose a folder to begin.",
+            text=self._t("choose_begin"),
             font=ctk.CTkFont(
                 size=12,
             ),
@@ -1371,33 +2088,33 @@ class AniccoliApp(ctk.CTk):
         self.files_count_label = self._create_summary_card(
             parent=summary_frame,
             column=0,
-            heading="FILES FOUND",
+            heading=self._t("files_found"),
             starting_value="0",
-            accent="Files in the current scan",
+            accent=self._t("files_scan"),
         )
 
         self.total_size_label = self._create_summary_card(
             parent=summary_frame,
             column=1,
-            heading="COMBINED SIZE",
+            heading=self._t("combined_size"),
             starting_value="0 B",
-            accent="Total detected asset size",
+            accent=self._t("total_size"),
         )
 
         self.categories_count_label = self._create_summary_card(
             parent=summary_frame,
             column=2,
-            heading="CATEGORIES",
+            heading=self._t("categories"),
             starting_value="0",
-            accent="Detected asset groups",
+            accent=self._t("asset_groups"),
         )
 
         self.selection_count_label = self._create_summary_card(
             parent=summary_frame,
             column=3,
-            heading="SELECTED",
+            heading=self._t("selected"),
             starting_value="0 / 0",
-            accent="Used for preview and export",
+            accent=self._t("selected_use"),
         )
 
     def _create_summary_card(
@@ -1524,7 +2241,7 @@ class AniccoliApp(ctk.CTk):
 
         results_heading = ctk.CTkLabel(
             master=heading_frame,
-            text="Scanned assets",
+            text=self._t("scanned_assets"),
             font=ctk.CTkFont(
                 size=18,
                 weight="bold",
@@ -1540,7 +2257,7 @@ class AniccoliApp(ctk.CTk):
 
         results_hint = ctk.CTkLabel(
             master=heading_frame,
-            text="Filter and select the files used by organization and reports.",
+            text=self._t("results_hint"),
             font=ctk.CTkFont(
                 size=11,
             ),
@@ -1570,7 +2287,7 @@ class AniccoliApp(ctk.CTk):
 
         self.filter_count_label = ctk.CTkLabel(
             master=count_pill,
-            text="Showing 0 of 0 files",
+            text=self._t("showing_files", visible=0, total=0),
             font=ctk.CTkFont(
                 size=12,
                 weight="bold",
@@ -1609,12 +2326,12 @@ class AniccoliApp(ctk.CTk):
         results_header.grid_columnconfigure(5, weight=0)
 
         headings = (
-            "USE",
-            "ASSET",
-            "CATEGORY",
-            "SIZE",
-            "PLANNED DESTINATION",
-            "ACTION",
+            self._t("use"),
+            self._t("asset"),
+            self._t("category"),
+            self._t("size"),
+            self._t("planned_destination"),
+            self._t("action"),
         )
 
         for column, heading in enumerate(
@@ -1648,7 +2365,9 @@ class AniccoliApp(ctk.CTk):
         )
 
         self._show_empty_results_message(
-            "No scan results yet.\nChoose a project folder from the sidebar."
+            self._t(
+                "empty_initial"
+            )
         )
 
     def _create_filter_controls(
@@ -1683,7 +2402,7 @@ class AniccoliApp(ctk.CTk):
         self.search_entry = ctk.CTkEntry(
             master=filter_frame,
             textvariable=self.search_var,
-            placeholder_text="Search assets, paths, categories, or folders…",
+            placeholder_text=self._t("search_placeholder"),
             height=40,
             corner_radius=10,
             border_color=BORDER_COLOR,
@@ -1705,7 +2424,7 @@ class AniccoliApp(ctk.CTk):
 
         clear_button = ctk.CTkButton(
             master=filter_frame,
-            text="Clear filters",
+            text=self._t("clear_filters"),
             command=self._clear_filters,
             width=112,
             height=40,
@@ -1811,7 +2530,7 @@ class AniccoliApp(ctk.CTk):
 
         filter_caption = ctk.CTkLabel(
             master=filter_frame,
-            text="Quick filters",
+            text=self._t("quick_filters"),
             font=ctk.CTkFont(
                 size=11,
                 weight="bold",
@@ -1913,7 +2632,7 @@ class AniccoliApp(ctk.CTk):
 
         reset_sort_button = ctk.CTkButton(
             master=filter_frame,
-            text="Reset sort",
+            text=self._t("reset_sort"),
             command=self._reset_sort,
             height=36,
             corner_radius=9,
@@ -1954,7 +2673,7 @@ class AniccoliApp(ctk.CTk):
 
         selection_hint = ctk.CTkLabel(
             master=selection_bar,
-            text="Selection controls",
+            text=self._t("selection_controls"),
             font=ctk.CTkFont(
                 size=12,
                 weight="bold",
@@ -1973,7 +2692,7 @@ class AniccoliApp(ctk.CTk):
 
         select_visible_button = ctk.CTkButton(
             master=selection_bar,
-            text="Select visible",
+            text=self._t("select_visible"),
             command=self._select_visible_assets,
             width=110,
             height=32,
@@ -1994,7 +2713,7 @@ class AniccoliApp(ctk.CTk):
 
         invert_visible_button = ctk.CTkButton(
             master=selection_bar,
-            text="Invert visible",
+            text=self._t("invert_visible"),
             command=self._invert_visible_selection,
             width=110,
             height=32,
@@ -2015,7 +2734,7 @@ class AniccoliApp(ctk.CTk):
 
         clear_selection_button = ctk.CTkButton(
             master=selection_bar,
-            text="Clear selection",
+            text=self._t("clear_selection"),
             command=self._clear_asset_selection,
             width=115,
             height=32,
@@ -2163,13 +2882,207 @@ class AniccoliApp(ctk.CTk):
         return "break"
 
     def _open_about_window(self) -> None:
-        """Open Aniccoli help and application information."""
-        AboutWindow(
-            master=self,
-            version=APP_VERSION,
-            shortcut_modifier=(
-                self._shortcut_modifier_label
+        """Open localized help and shortcut guidance."""
+        help_window = ctk.CTkToplevel(
+            self
+        )
+
+        help_window.title(
+            self._t(
+                "help_title"
+            )
+        )
+
+        help_window.geometry(
+            "720x610"
+        )
+
+        help_window.minsize(
+            620,
+            500,
+        )
+
+        help_window.transient(
+            self
+        )
+
+        help_window.grab_set()
+
+        help_window.grid_columnconfigure(
+            0,
+            weight=1,
+        )
+
+        help_window.grid_rowconfigure(
+            1,
+            weight=1,
+        )
+
+        heading = ctk.CTkLabel(
+            master=help_window,
+            text=self._t(
+                "help_title"
             ),
+            font=ctk.CTkFont(
+                size=26,
+                weight="bold",
+            ),
+            anchor="w",
+        )
+
+        heading.grid(
+            row=0,
+            column=0,
+            sticky="ew",
+            padx=26,
+            pady=(24, 12),
+        )
+
+        content = ctk.CTkScrollableFrame(
+            master=help_window,
+            corner_radius=14,
+            fg_color=PANEL_BACKGROUND,
+        )
+
+        content.grid(
+            row=1,
+            column=0,
+            sticky="nsew",
+            padx=26,
+            pady=(0, 14),
+        )
+
+        content.grid_columnconfigure(
+            0,
+            weight=1,
+        )
+
+        sections = (
+            (
+                APP_NAME,
+                self._t(
+                    "help_intro"
+                ),
+            ),
+            (
+                self._t(
+                    "help_workflow"
+                ),
+                self._t(
+                    "help_workflow_body"
+                ),
+            ),
+            (
+                self._t(
+                    "help_safety"
+                ),
+                self._t(
+                    "help_safety_body"
+                ),
+            ),
+            (
+                self._t(
+                    "help_keys"
+                ),
+                (
+                    f"{self._shortcut_modifier_label} + O — "
+                    f"{self._t('choose_project')}\n"
+                    f"{self._shortcut_modifier_label} + R — "
+                    f"{self._t('scan_project')}\n"
+                    f"{self._shortcut_modifier_label} + F — "
+                    f"{self._t('search_placeholder')}\n"
+                    f"{self._shortcut_modifier_label} + Shift + A — "
+                    f"{self._t('select_visible')}\n"
+                    f"{self._shortcut_modifier_label} + Shift + C — "
+                    f"{self._t('clear_selection')}\n"
+                    f"F1 — {self._t('help_shortcuts')}"
+                ),
+            ),
+        )
+
+        for row, (
+            section_title,
+            section_body,
+        ) in enumerate(
+            sections
+        ):
+            card = ctk.CTkFrame(
+                master=content,
+                corner_radius=12,
+                fg_color=CARD_BACKGROUND,
+                border_width=1,
+                border_color=BORDER_COLOR,
+            )
+
+            card.grid(
+                row=row,
+                column=0,
+                sticky="ew",
+                pady=(0, 10),
+            )
+
+            card.grid_columnconfigure(
+                0,
+                weight=1,
+            )
+
+            title_label = ctk.CTkLabel(
+                master=card,
+                text=section_title,
+                font=ctk.CTkFont(
+                    size=15,
+                    weight="bold",
+                ),
+                anchor="w",
+            )
+
+            title_label.grid(
+                row=0,
+                column=0,
+                sticky="ew",
+                padx=15,
+                pady=(13, 5),
+            )
+
+            body_label = ctk.CTkLabel(
+                master=card,
+                text=section_body,
+                font=ctk.CTkFont(
+                    size=13,
+                ),
+                text_color=MUTED_TEXT,
+                anchor="w",
+                justify="left",
+                wraplength=610,
+            )
+
+            body_label.grid(
+                row=1,
+                column=0,
+                sticky="ew",
+                padx=15,
+                pady=(0, 14),
+            )
+
+        close_button = ctk.CTkButton(
+            master=help_window,
+            text=self._t(
+                "close"
+            ),
+            command=help_window.destroy,
+            width=120,
+            height=38,
+            corner_radius=10,
+            fg_color=ACCENT_COLOR,
+            hover_color=ACCENT_HOVER,
+        )
+
+        close_button.grid(
+            row=2,
+            column=0,
+            sticky="e",
+            padx=26,
+            pady=(0, 24),
         )
 
     def _save_current_preferences(self) -> None:
@@ -2252,9 +3165,8 @@ class AniccoliApp(ctk.CTk):
         )
 
         self.status_label.configure(
-            text=(
-                "Previous project folder restored. "
-                "Click Scan Folder to inspect its assets."
+            text=self._t(
+                "restored_folder_status"
             ),
         )
 
@@ -2307,10 +3219,8 @@ class AniccoliApp(ctk.CTk):
             self._display_assets()
 
             self.status_label.configure(
-                text=(
-                    "Organization settings updated. "
-                    "Open Preview Organization to review "
-                    "the new destinations."
+                text=self._t(
+                    "filters_updated"
                 ),
             )
 
@@ -2318,7 +3228,7 @@ class AniccoliApp(ctk.CTk):
         """Open the folder picker and store the selected folder."""
         selected_path = filedialog.askdirectory(
             parent=self,
-            title="Select a 3D project folder",
+            title=self._t("folder_dialog"),
             mustexist=True,
         )
 
@@ -2336,9 +3246,8 @@ class AniccoliApp(ctk.CTk):
         )
 
         self.status_label.configure(
-            text=(
-                "Folder selected. Click Scan Folder "
-                "to inspect its assets."
+            text=self._t(
+                "folder_selected_status"
             ),
         )
 
@@ -2354,13 +3263,13 @@ class AniccoliApp(ctk.CTk):
         """Scan the selected folder and display its assets."""
         if self.selected_folder is None:
             self.status_label.configure(
-                text="Please choose a project folder first.",
+                text=self._t("choose_first"),
             )
             return
 
         self.scan_button.configure(
             state="disabled",
-            text="Scanning...",
+            text=self._t("scanning"),
         )
 
         self.preview_button.configure(
@@ -2384,7 +3293,7 @@ class AniccoliApp(ctk.CTk):
         )
 
         self.status_label.configure(
-            text="Scanning the selected folder...",
+            text=self._t("scanning_status"),
         )
 
         self.update_idletasks()
@@ -2408,7 +3317,7 @@ class AniccoliApp(ctk.CTk):
             self.asset_selection = clear_asset_selection()
 
             self.status_label.configure(
-                text=f"Scan failed: {error}",
+                text=self._t("scan_failed", error=error),
             )
 
             self._refresh_filter_options()
@@ -2430,10 +3339,14 @@ class AniccoliApp(ctk.CTk):
             )
 
             self.status_label.configure(
-                text=(
-                    f"Scan complete. "
-                    f"{file_count} file"
-                    f"{'' if file_count == 1 else 's'} found."
+                text=self._t(
+                    "scan_complete",
+                    count=file_count,
+                    suffix=(
+                        ""
+                        if file_count == 1
+                        else "s"
+                    ),
                 ),
             )
 
@@ -2452,7 +3365,7 @@ class AniccoliApp(ctk.CTk):
         finally:
             self.scan_button.configure(
                 state="normal",
-                text="Scan Folder",
+                text=self._t("scan_project"),
             )
 
             self._refresh_undo_button()
@@ -2815,7 +3728,7 @@ class AniccoliApp(ctk.CTk):
             self.filtered_assets = []
 
             self.filter_count_label.configure(
-                text="Showing 0 of 0 files",
+                text=self._t("showing_files", visible=0, total=0),
             )
 
             self._update_selection_summary()
@@ -2840,7 +3753,7 @@ class AniccoliApp(ctk.CTk):
             )
         except ValueError as error:
             self.status_label.configure(
-                text=f"Filter error: {error}",
+                text=self._t("filter_error", error=error),
             )
             return
 
@@ -2853,9 +3766,10 @@ class AniccoliApp(ctk.CTk):
         )
 
         self.filter_count_label.configure(
-            text=(
-                f"Showing {visible_count} "
-                f"of {result.total_count} files"
+            text=self._t(
+                "showing_files",
+                visible=visible_count,
+                total=result.total_count,
             ),
         )
 
@@ -2864,7 +3778,9 @@ class AniccoliApp(ctk.CTk):
 
         if not self.filtered_assets:
             self._show_empty_results_message(
-                "No assets match the current filters."
+                self._t(
+                    "empty_no_match"
+                )
             )
             return
 
@@ -2897,7 +3813,7 @@ class AniccoliApp(ctk.CTk):
         )
 
         self.filter_count_label.configure(
-            text="Showing 0 of 0 files",
+            text=self._t("showing_files", visible=0, total=0),
         )
 
         self.selection_count_label.configure(
@@ -2951,8 +3867,9 @@ class AniccoliApp(ctk.CTk):
         self._clear_result_rows()
 
         self._show_empty_results_message(
-            "Folder selected.\n"
-            "Click Scan Folder to inspect its assets."
+            self._t(
+                "empty_folder_selected"
+            )
         )
 
     def _display_assets(self) -> None:
@@ -2989,11 +3906,13 @@ class AniccoliApp(ctk.CTk):
             self.filtered_assets = []
 
             self.filter_count_label.configure(
-                text="Showing 0 of 0 files",
+                text=self._t("showing_files", visible=0, total=0),
             )
 
             self._show_empty_results_message(
-                "No supported or visible files were found."
+                self._t(
+                    "empty_no_files"
+                )
             )
             return
 
@@ -3092,7 +4011,7 @@ class AniccoliApp(ctk.CTk):
 
         parent_path = asset.relative_path.parent
         parent_text = (
-            "Project root"
+            self._t("project_root")
             if parent_path == Path(".")
             else str(parent_path)
         )
@@ -3203,7 +4122,7 @@ class AniccoliApp(ctk.CTk):
 
         reveal_button = ctk.CTkButton(
             master=row_frame,
-            text="Reveal",
+            text=self._t("reveal"),
             command=lambda selected_asset=asset: (
                 self._reveal_asset_in_file_manager(selected_asset)
             ),
@@ -3243,20 +4162,20 @@ class AniccoliApp(ctk.CTk):
             OSError,
         ) as error:
             messagebox.showerror(
-                title="Cannot Reveal Asset",
+                title=self._t("cannot_reveal"),
                 message=str(error),
                 parent=self,
             )
 
             self.status_label.configure(
-                text=f"Could not reveal asset: {error}",
+                text=self._t("cannot_reveal_status", error=error),
             )
             return
 
         self.status_label.configure(
-            text=(
-                "Revealed asset in the system file manager: "
-                f"{revealed_path.name}"
+            text=self._t(
+                "revealed_status",
+                name=revealed_path.name,
             ),
         )
 
@@ -3264,17 +4183,17 @@ class AniccoliApp(ctk.CTk):
         """Audit all scanned assets and display detected health issues."""
         if not self.scanned_assets:
             self.status_label.configure(
-                text="Scan a folder before opening Asset Health.",
+                text=self._t("scan_before_health"),
             )
             return
 
         self.audit_button.configure(
             state="disabled",
-            text="Auditing...",
+            text=self._t("auditing"),
         )
 
         self.status_label.configure(
-            text="Checking the scanned project for asset health issues...",
+            text=self._t("health_checking"),
         )
 
         self.update_idletasks()
@@ -3287,13 +4206,13 @@ class AniccoliApp(ctk.CTk):
             )
         except ValueError as error:
             messagebox.showerror(
-                title="Asset Audit Failed",
+                title=self._t("health_failed_title"),
                 message=str(error),
                 parent=self,
             )
 
             self.status_label.configure(
-                text=f"Asset audit failed: {error}",
+                text=self._t("health_failed", error=error),
             )
             return
         finally:
@@ -3303,7 +4222,7 @@ class AniccoliApp(ctk.CTk):
                     if self.scanned_assets
                     else "disabled"
                 ),
-                text="Asset Health",
+                text=self._t("asset_health"),
             )
 
         AssetAuditWindow(
@@ -3333,17 +4252,17 @@ class AniccoliApp(ctk.CTk):
         """Calculate and display statistics for all scanned assets."""
         if not self.scanned_assets:
             self.status_label.configure(
-                text="Scan a folder before opening project statistics.",
+                text=self._t("scan_before_stats"),
             )
             return
 
         self.statistics_button.configure(
             state="disabled",
-            text="Calculating...",
+            text=self._t("calculating"),
         )
 
         self.status_label.configure(
-            text="Calculating project statistics...",
+            text=self._t("stats_calculating"),
         )
 
         self.update_idletasks()
@@ -3356,13 +4275,13 @@ class AniccoliApp(ctk.CTk):
             )
         except ValueError as error:
             messagebox.showerror(
-                title="Statistics Failed",
+                title=self._t("stats_failed_title"),
                 message=str(error),
                 parent=self,
             )
 
             self.status_label.configure(
-                text=f"Statistics failed: {error}",
+                text=self._t("stats_failed", error=error),
             )
             return
         finally:
@@ -3372,7 +4291,7 @@ class AniccoliApp(ctk.CTk):
                     if self.scanned_assets
                     else "disabled"
                 ),
-                text="Project Statistics",
+                text=self._t("project_statistics"),
             )
 
         AssetStatisticsWindow(
@@ -3399,19 +4318,19 @@ class AniccoliApp(ctk.CTk):
             or not self.scanned_assets
         ):
             self.status_label.configure(
-                text="Scan a folder before exporting a report.",
+                text=self._t("scan_before_export"),
             )
             return
 
         if not selected_asset_records:
             self.status_label.configure(
-                text="Select at least one asset before exporting.",
+                text=self._t("select_before_export"),
             )
             return
 
         selected_path = filedialog.asksaveasfilename(
             parent=self,
-            title="Export Aniccoli Asset Inventory",
+            title=self._t("export_title"),
             initialdir=str(
                 self.selected_folder
             ),
@@ -3444,11 +4363,11 @@ class AniccoliApp(ctk.CTk):
 
         self.export_button.configure(
             state="disabled",
-            text="Exporting...",
+            text=self._t("exporting"),
         )
 
         self.status_label.configure(
-            text="Exporting the asset inventory report...",
+            text=self._t("export_status"),
         )
 
         self.update_idletasks()
@@ -3469,7 +4388,7 @@ class AniccoliApp(ctk.CTk):
             ValueError,
         ) as error:
             messagebox.showerror(
-                title="Report Export Failed",
+                title=self._t("export_failed_title"),
                 message=str(
                     error
                 ),
@@ -3477,7 +4396,7 @@ class AniccoliApp(ctk.CTk):
             )
 
             self.status_label.configure(
-                text=f"Report export failed: {error}",
+                text=self._t("export_failed", error=error),
             )
             return
         finally:
@@ -3487,11 +4406,11 @@ class AniccoliApp(ctk.CTk):
                     if self.scanned_assets
                     else "disabled"
                 ),
-                text="Export Report",
+                text=self._t("export_report"),
             )
 
         messagebox.showinfo(
-            title="Report Exported",
+            title=self._t("exported_title"),
             message=(
                 f"Format: {result.report_format}\n"
                 f"Assets exported: {result.asset_count}\n"
@@ -3512,22 +4431,20 @@ class AniccoliApp(ctk.CTk):
         """Analyze and display exact-content duplicates."""
         if not self.scanned_assets:
             self.status_label.configure(
-                text=(
-                    "Scan a folder before "
-                    "analyzing duplicates."
+                text=self._t(
+                    "duplicate_before"
                 ),
             )
             return
 
         self.duplicate_button.configure(
             state="disabled",
-            text="Analyzing...",
+            text=self._t("analyzing"),
         )
 
         self.status_label.configure(
-            text=(
-                "Analyzing possible duplicates. "
-                "Large files may take a moment..."
+            text=self._t(
+                "duplicate_status"
             ),
         )
 
@@ -3549,7 +4466,7 @@ class AniccoliApp(ctk.CTk):
             self.duplicate_groups = []
 
             messagebox.showerror(
-                title="Duplicate Analysis Failed",
+                title=self._t("duplicate_failed_title"),
                 message=str(
                     error
                 ),
@@ -3557,15 +4474,16 @@ class AniccoliApp(ctk.CTk):
             )
 
             self.status_label.configure(
-                text=(
-                    f"Duplicate analysis failed: {error}"
+                text=self._t(
+                    "duplicate_failed",
+                    error=error,
                 ),
             )
             return
         finally:
             self.duplicate_button.configure(
                 state="normal",
-                text="Analyze Duplicates",
+                text=self._t("analyze_duplicates"),
             )
 
         duplicate_copy_count = (
@@ -3627,9 +4545,8 @@ class AniccoliApp(ctk.CTk):
             or not self.scanned_assets
         ):
             self.status_label.configure(
-                text=(
-                    "Scan a folder before "
-                    "creating a preview."
+                text=self._t(
+                    "scan_before_preview"
                 ),
             )
             return
@@ -3640,9 +4557,8 @@ class AniccoliApp(ctk.CTk):
 
         if not selected_asset_records:
             self.status_label.configure(
-                text=(
-                    "Select at least one asset before "
-                    "creating an organization preview."
+                text=self._t(
+                    "select_before_preview"
                 ),
             )
             return
@@ -3695,7 +4611,7 @@ class AniccoliApp(ctk.CTk):
         )
 
         preview_window.title(
-            "Aniccoli Organization Preview"
+            f"{APP_NAME} — {self._t('preview_title')}"
         )
 
         preview_window.geometry(
@@ -3725,7 +4641,7 @@ class AniccoliApp(ctk.CTk):
 
         title_label = ctk.CTkLabel(
             master=preview_window,
-            text="Organization Preview",
+            text=self._t("preview_title"),
             font=ctk.CTkFont(
                 size=28,
                 weight="bold",
@@ -3840,7 +4756,7 @@ class AniccoliApp(ctk.CTk):
 
         close_button = ctk.CTkButton(
             master=action_frame,
-            text="Close Preview",
+            text=self._t("close_preview"),
             command=preview_window.destroy,
             width=145,
             height=40,
@@ -3854,7 +4770,7 @@ class AniccoliApp(ctk.CTk):
 
         organize_button = ctk.CTkButton(
             master=action_frame,
-            text="Organize Files",
+            text=self._t("organize_files"),
             command=lambda: (
                 self._confirm_and_organize(
                     preview_window
@@ -3918,7 +4834,7 @@ class AniccoliApp(ctk.CTk):
         source_label = ctk.CTkLabel(
             master=row_frame,
             text=(
-                "From\n"
+                f"{self._t('from')}\n"
                 f"{planned_move.asset.relative_path}"
             ),
             font=ctk.CTkFont(
@@ -3945,7 +4861,7 @@ class AniccoliApp(ctk.CTk):
         destination_label = ctk.CTkLabel(
             master=row_frame,
             text=(
-                "To\n"
+                f"{self._t('to')}\n"
                 f"{destination_relative}"
             ),
             font=ctk.CTkFont(
@@ -3966,9 +4882,9 @@ class AniccoliApp(ctk.CTk):
         conflict_label = ctk.CTkLabel(
             master=row_frame,
             text=(
-                "Renamed"
+                self._t("renamed")
                 if planned_move.renamed_for_conflict
-                else "Ready"
+                else self._t("ready")
             ),
             font=ctk.CTkFont(
                 size=12,
@@ -3999,7 +4915,7 @@ class AniccoliApp(ctk.CTk):
         )
 
         confirmed = messagebox.askyesno(
-            title="Confirm File Organization",
+            title=self._t("confirm_organization"),
             message=(
                 f"Aniccoli will move {file_count} file"
                 f"{'' if file_count == 1 else 's'}.\n\n"
@@ -4013,7 +4929,7 @@ class AniccoliApp(ctk.CTk):
             return
 
         self.status_label.configure(
-            text="Organizing files...",
+            text=self._t("organizing"),
         )
 
         self.update_idletasks()
@@ -4031,7 +4947,7 @@ class AniccoliApp(ctk.CTk):
             ValueError,
         ) as error:
             messagebox.showerror(
-                title="Organization Failed",
+                title=self._t("organization_failed_title"),
                 message=str(
                     error
                 ),
@@ -4047,7 +4963,7 @@ class AniccoliApp(ctk.CTk):
 
         if result.failed_count == 0:
             messagebox.showinfo(
-                title="Organization Complete",
+                title=self._t("organization_complete_title"),
                 message=(
                     f"{result.moved_count} file"
                     f"{'' if result.moved_count == 1 else 's'} "
@@ -4057,7 +4973,7 @@ class AniccoliApp(ctk.CTk):
             )
         else:
             messagebox.showwarning(
-                title="Organization Partially Complete",
+                title=self._t("organization_partial_title"),
                 message=(
                     f"Moved: {result.moved_count}\n"
                     f"Failed: {result.failed_count}"
@@ -4115,7 +5031,7 @@ class AniccoliApp(ctk.CTk):
             return
 
         confirmed = messagebox.askyesno(
-            title="Undo Last Organization",
+            title=self._t("undo_title"),
             message=(
                 "Aniccoli will restore files from the latest "
                 "organization operation to their original locations.\n\n"
@@ -4130,13 +5046,12 @@ class AniccoliApp(ctk.CTk):
 
         self.undo_button.configure(
             state="disabled",
-            text="Undoing...",
+            text=self._t("undoing"),
         )
 
         self.status_label.configure(
-            text=(
-                "Restoring files to their "
-                "original locations..."
+            text=self._t(
+                "restoring"
             ),
         )
 
@@ -4148,7 +5063,7 @@ class AniccoliApp(ctk.CTk):
             )
         except NoUndoHistoryError as error:
             messagebox.showinfo(
-                title="Nothing to Undo",
+                title=self._t("nothing_undo"),
                 message=str(
                     error
                 ),
@@ -4169,7 +5084,7 @@ class AniccoliApp(ctk.CTk):
             ValueError,
         ) as error:
             messagebox.showerror(
-                title="Undo Failed",
+                title=self._t("undo_failed_title"),
                 message=str(
                     error
                 ),
@@ -4182,12 +5097,12 @@ class AniccoliApp(ctk.CTk):
             return
         finally:
             self.undo_button.configure(
-                text="Undo Last Organization",
+                text=self._t("undo_organize"),
             )
 
         if result.failed_count == 0:
             messagebox.showinfo(
-                title="Undo Complete",
+                title=self._t("undo_complete_title"),
                 message=(
                     f"Restored: {result.restored_count}\n"
                     f"Already restored: "
@@ -4206,7 +5121,7 @@ class AniccoliApp(ctk.CTk):
             ]
 
             messagebox.showwarning(
-                title="Undo Partially Complete",
+                title=self._t("undo_partial_title"),
                 message=(
                     f"Restored: {result.restored_count}\n"
                     f"Already restored: "
