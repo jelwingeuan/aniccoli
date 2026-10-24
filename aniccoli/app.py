@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -507,6 +508,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "group_unity": "Unity assets",
         "group_media": "Media",
         "group_other": "Other",
+        "show_more": "Show {count} more ({remaining} not shown yet)",
     },
     "ms": {
         "language": "Bahasa",
@@ -632,6 +634,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "group_unity": "Aset Unity",
         "group_media": "Media",
         "group_other": "Lain-lain",
+        "show_more": "Tunjukkan {count} lagi ({remaining} belum ditunjukkan)",
     },
     "zh": {
         "language": "语言",
@@ -757,6 +760,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "group_unity": "Unity 素材",
         "group_media": "媒体",
         "group_other": "其他",
+        "show_more": "再显示 {count} 个（还有 {remaining} 个未显示）",
     },
     "ja": {
         "language": "言語",
@@ -882,6 +886,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "group_unity": "Unity アセット",
         "group_media": "メディア",
         "group_other": "その他",
+        "show_more": "さらに {count} 件表示（未表示 {remaining} 件）",
     },
 }
 
@@ -992,6 +997,10 @@ def _category_group(category: AssetCategory) -> str:
     return "other"
 
 
+# shortcut: rows render in pages because each CTk row costs ~10 ms and the
+# cost grows with count; switch to ttk.Treeview if users need 10k+ rows.
+ROW_PAGE_SIZE = 100
+
 ALL_CATEGORIES = "All categories"
 ALL_EXTENSIONS = "All extensions"
 ALL_FOLDERS = "All folders"
@@ -1062,6 +1071,7 @@ class AniccoliApp(ctk.CTk):
 
         self.scanned_assets: list[AssetFile] = []
         self.filtered_assets: list[AssetFile] = []
+        self._search_job: str | None = None
         self.organization_plan: list[PlannedMove] = []
         self.duplicate_groups: list[DuplicateGroup] = []
 
@@ -2543,7 +2553,7 @@ class AniccoliApp(ctk.CTk):
 
         self.search_entry.bind(
             "<KeyRelease>",
-            lambda _event: self._apply_filters(),
+            lambda _event: self._schedule_search(),
         )
 
         clear_button = ctk.CTkButton(
@@ -3907,13 +3917,84 @@ class AniccoliApp(ctk.CTk):
             )
             return
 
-        for row_number, asset in enumerate(
-            self.filtered_assets
-        ):
-            self._create_asset_row(
-                asset=asset,
-                row_number=row_number,
+        self._render_row_page(
+            parent=self.results_scroll_frame,
+            items=self.filtered_assets,
+            create_row=lambda asset, row_number: (
+                self._create_asset_row(
+                    asset=asset,
+                    row_number=row_number,
+                )
+            ),
+        )
+
+    def _schedule_search(self) -> None:
+        """Re-filter once typing pauses instead of on every key."""
+        if self._search_job is not None:
+            self.after_cancel(
+                self._search_job
             )
+
+        self._search_job = self.after(
+            250,
+            self._apply_filters,
+        )
+
+    def _render_row_page(
+        self,
+        parent: ctk.CTkScrollableFrame,
+        items: Sequence[Any],
+        create_row: Callable[[Any, int], None],
+        start: int = 0,
+    ) -> None:
+        """Render one page of rows, then a button that renders the next."""
+        end = min(
+            start + ROW_PAGE_SIZE,
+            len(items),
+        )
+
+        for row_number in range(start, end):
+            create_row(
+                items[row_number],
+                row_number,
+            )
+
+        remaining = len(items) - end
+
+        if remaining <= 0:
+            return
+
+        def show_next_page() -> None:
+            # Hidden, not destroyed: CTk still runs a click animation on it.
+            more_button.grid_forget()
+            self._render_row_page(
+                parent=parent,
+                items=items,
+                create_row=create_row,
+                start=end,
+            )
+
+        more_button = ctk.CTkButton(
+            master=parent,
+            text=self._t(
+                "show_more",
+                count=min(ROW_PAGE_SIZE, remaining),
+                remaining=remaining,
+            ),
+            command=show_next_page,
+            height=32,
+            fg_color="transparent",
+            hover_color=ACCENT_SOFT,
+            border_width=1,
+            border_color=BORDER_COLOR,
+            text_color=TEXT_COLOR,
+        )
+
+        more_button.grid(
+            row=end,
+            column=0,
+            pady=(10, 6),
+        )
 
     def _reset_scan_results(self) -> None:
         """Clear results when another folder is selected."""
@@ -4867,14 +4948,17 @@ class AniccoliApp(ctk.CTk):
                 pady=70,
             )
         else:
-            for row_number, planned_move in enumerate(
-                self.organization_plan
-            ):
-                self._create_preview_row(
-                    parent=preview_scroll,
-                    planned_move=planned_move,
-                    row_number=row_number,
-                )
+            self._render_row_page(
+                parent=preview_scroll,
+                items=self.organization_plan,
+                create_row=lambda planned_move, row_number: (
+                    self._create_preview_row(
+                        parent=preview_scroll,
+                        planned_move=planned_move,
+                        row_number=row_number,
+                    )
+                ),
+            )
 
         action_frame = ctk.CTkFrame(
             master=preview_window,
