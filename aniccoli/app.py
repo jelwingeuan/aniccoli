@@ -11,7 +11,6 @@ from typing import Optional
 
 import customtkinter as ctk
 
-from aniccoli.about_window import AboutWindow
 from aniccoli.audit import audit_assets
 from aniccoli.audit_window import AssetAuditWindow
 from aniccoli.categories import AssetCategory

@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from tkinter import messagebox
-from typing import Any
 
 import customtkinter as ctk
 
