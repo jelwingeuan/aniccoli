@@ -24,17 +24,15 @@ from aniccoli.duplicates import (
 )
 from aniccoli.file_actions import reveal_in_file_manager
 from aniccoli.filters import (
-    AssetFilter,
+    AssetQuery,
+    FolderMatchMode,
+    SortDirection,
+    SortField,
     collect_available_categories,
     collect_available_extensions,
-    filter_assets,
-)
-from aniccoli.folder_filter import (
-    FolderFilterOptions,
-    FolderMatchMode,
     collect_available_folders,
-    filter_assets_by_folder,
     folder_display_name,
+    query_assets,
 )
 from aniccoli.moves import (
     JournalKind,
@@ -77,12 +75,6 @@ from aniccoli.selection import (
     select_all_assets,
     selected_assets,
     summarize_selection,
-)
-from aniccoli.sorting import (
-    AssetSortOptions,
-    SortDirection,
-    SortField,
-    sort_assets,
 )
 from aniccoli.statistics import build_asset_statistics
 from aniccoli.statistics_window import AssetStatisticsWindow
@@ -3651,27 +3643,6 @@ class AniccoliApp(ctk.CTk):
 
         self._apply_filters()
 
-    def _build_folder_filter(
-        self,
-    ) -> FolderFilterOptions:
-        """Build parent-folder filtering options from the controls."""
-        selected_display_name = (
-            self.folder_filter_var.get()
-        )
-
-        selected_folder = (
-            self.folder_display_lookup.get(
-                selected_display_name
-            )
-        )
-
-        return FolderFilterOptions(
-            folder=selected_folder,
-            match_mode=FolderMatchMode(
-                self.folder_match_mode_var.get()
-            ),
-        )
-
     def _reset_sort(self) -> None:
         """Restore filename sorting in ascending order."""
         self.sort_field_var.set(
@@ -3783,21 +3754,8 @@ class AniccoliApp(ctk.CTk):
             self.asset_selection,
         )
 
-    def _build_sort_options(
-        self,
-    ) -> AssetSortOptions:
-        """Build asset-sorting options from the controls."""
-        return AssetSortOptions(
-            field=SortField(
-                self.sort_field_var.get()
-            ),
-            direction=SortDirection(
-                self.sort_direction_var.get()
-            ),
-        )
-
-    def _build_asset_filter(self) -> AssetFilter:
-        """Build an AssetFilter from the interface controls."""
+    def _build_query(self) -> AssetQuery:
+        """Build the asset query from the search, filter and sort controls."""
         selected_category_text = (
             self.category_filter_var.get()
         )
@@ -3847,13 +3805,25 @@ class AniccoliApp(ctk.CTk):
             else None
         )
 
-        return AssetFilter(
+        return AssetQuery(
             search_text=self.search_var.get(),
             categories=selected_categories,
             extensions=selected_extensions,
             minimum_size_bytes=minimum_size,
             maximum_size_bytes=maximum_size,
             modified_after=modified_after,
+            folder=self.folder_display_lookup.get(
+                self.folder_filter_var.get()
+            ),
+            folder_match_mode=FolderMatchMode(
+                self.folder_match_mode_var.get()
+            ),
+            sort_field=SortField(
+                self.sort_field_var.get()
+            ),
+            sort_direction=SortDirection(
+                self.sort_direction_var.get()
+            ),
         )
 
     def _apply_filters(self) -> None:
@@ -3869,21 +3839,9 @@ class AniccoliApp(ctk.CTk):
             return
 
         try:
-            result = filter_assets(
+            result = query_assets(
                 self.scanned_assets,
-                self._build_asset_filter(),
-            )
-
-            folder_filtered_assets = (
-                filter_assets_by_folder(
-                    result.matched_assets,
-                    self._build_folder_filter(),
-                )
-            )
-
-            sorted_assets = sort_assets(
-                folder_filtered_assets,
-                self._build_sort_options(),
+                self._build_query(),
             )
         except ValueError as error:
             self.status_label.configure(
@@ -3892,7 +3850,7 @@ class AniccoliApp(ctk.CTk):
             return
 
         self.filtered_assets = list(
-            sorted_assets
+            result.matched
         )
 
         visible_count = len(

@@ -1,18 +1,61 @@
-"""Asset search and filtering tools for Aniccoli."""
+"""Asset search, filtering and sorting for Aniccoli.
+
+One AssetQuery describes everything the results list can narrow or order
+by; query_assets applies all of it in one place.
+"""
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Iterable
+from enum import Enum
+from pathlib import Path
 
 from aniccoli.categories import AssetCategory
 from aniccoli.scanner import AssetFile
 
 
+class FolderMatchMode(str, Enum):
+    """Control how assets are matched against a selected folder."""
+
+    EXACT_FOLDER = "Selected folder only"
+    INCLUDE_SUBFOLDERS = "Include subfolders"
+
+    def __str__(self) -> str:
+        """Return the readable option name."""
+        return self.value
+
+
+class SortField(str, Enum):
+    """Available asset properties used for sorting."""
+
+    NAME = "File name"
+    CATEGORY = "Category"
+    EXTENSION = "Extension"
+    SIZE = "File size"
+    CREATED = "Creation date"
+    MODIFIED = "Modification date"
+
+    def __str__(self) -> str:
+        """Return the readable option name."""
+        return self.value
+
+
+class SortDirection(str, Enum):
+    """Available sorting directions."""
+
+    ASCENDING = "Ascending"
+    DESCENDING = "Descending"
+
+    def __str__(self) -> str:
+        """Return the readable option name."""
+        return self.value
+
+
 @dataclass(frozen=True)
-class AssetFilter:
-    """Store the active search and filtering options."""
+class AssetQuery:
+    """Everything that narrows and orders the scanned assets."""
 
     search_text: str = ""
 
@@ -30,41 +73,46 @@ class AssetFilter:
     modified_after: datetime | None = None
     modified_before: datetime | None = None
 
+    folder: Path | None = None
+    folder_match_mode: FolderMatchMode = (
+        FolderMatchMode.INCLUDE_SUBFOLDERS
+    )
+
+    sort_field: SortField = SortField.NAME
+    sort_direction: SortDirection = SortDirection.ASCENDING
+
     def __post_init__(self) -> None:
-        """Normalize and validate the supplied filter values."""
-        normalized_search_text = (
-            self.search_text
-            .strip()
-            .lower()
-        )
-
-        normalized_categories = frozenset(
-            self.categories
-        )
-
-        normalized_extensions = frozenset(
-            _normalize_extension(extension)
-            for extension in self.extensions
-            if extension.strip()
-        )
-
+        """Normalize and validate the supplied query values."""
         object.__setattr__(
             self,
             "search_text",
-            normalized_search_text,
+            self.search_text.strip().lower(),
         )
 
         object.__setattr__(
             self,
             "categories",
-            normalized_categories,
+            frozenset(self.categories),
         )
 
         object.__setattr__(
             self,
             "extensions",
-            normalized_extensions,
+            frozenset(
+                _normalize_extension(extension)
+                for extension in self.extensions
+                if extension.strip()
+            ),
         )
+
+        if self.folder is not None:
+            object.__setattr__(
+                self,
+                "folder",
+                _normalize_relative_folder(
+                    self.folder
+                ),
+            )
 
         self._validate_sizes()
         self._validate_dates()
@@ -121,238 +169,49 @@ class AssetFilter:
                     "than modified-before date."
                 )
 
-    @property
-    def has_active_filters(self) -> bool:
-        """Return True when at least one filter is active."""
-        return any(
-            (
-                bool(self.search_text),
-                bool(self.categories),
-                bool(self.extensions),
-                self.minimum_size_bytes is not None,
-                self.maximum_size_bytes is not None,
-                self.modified_after is not None,
-                self.modified_before is not None,
-            )
-        )
-
 
 @dataclass(frozen=True)
-class AssetFilterResult:
-    """Store the result of filtering scanned assets."""
+class QueryResult:
+    """The assets that matched a query, in query order."""
 
-    matched_assets: tuple[AssetFile, ...]
+    matched: tuple[AssetFile, ...]
     total_count: int
 
-    @property
-    def matched_count(self) -> int:
-        """Return the number of assets matching the filters."""
-        return len(self.matched_assets)
 
-    @property
-    def hidden_count(self) -> int:
-        """Return the number of assets hidden by the filters."""
-        return self.total_count - self.matched_count
-
-    @property
-    def has_matches(self) -> bool:
-        """Return True when at least one asset matched."""
-        return self.matched_count > 0
-
-
-def _normalize_extension(extension: str) -> str:
-    """Convert an extension into lowercase dot-prefixed form."""
-    normalized_extension = (
-        extension
-        .strip()
-        .lower()
-    )
-
-    if not normalized_extension:
-        return ""
-
-    if not normalized_extension.startswith("."):
-        normalized_extension = (
-            f".{normalized_extension}"
-        )
-
-    return normalized_extension
-
-
-def _build_searchable_text(
-    asset: AssetFile,
-) -> str:
-    """Build searchable text from an asset's information."""
-    searchable_parts = (
-        asset.file_name,
-        str(asset.relative_path),
-        asset.extension,
-        str(asset.category),
-        str(asset.destination),
-    )
-
-    return " ".join(
-        searchable_parts
-    ).lower()
-
-
-def _matches_search_text(
-    asset: AssetFile,
-    search_text: str,
-) -> bool:
-    """Return True when every search word matches the asset."""
-    if not search_text:
-        return True
-
-    searchable_text = _build_searchable_text(
-        asset
-    )
-
-    search_words = (
-        word
-        for word in search_text.split()
-        if word
-    )
-
-    return all(
-        word in searchable_text
-        for word in search_words
-    )
-
-
-def _matches_categories(
-    asset: AssetFile,
-    categories: frozenset[AssetCategory],
-) -> bool:
-    """Return True when the asset matches the category filter."""
-    if not categories:
-        return True
-
-    return asset.category in categories
-
-
-def _matches_extensions(
-    asset: AssetFile,
-    extensions: frozenset[str],
-) -> bool:
-    """Return True when the asset matches the extension filter."""
-    if not extensions:
-        return True
-
-    return asset.extension.lower() in extensions
-
-
-def _matches_file_size(
-    asset: AssetFile,
-    minimum_size_bytes: int | None,
-    maximum_size_bytes: int | None,
-) -> bool:
-    """Return True when the asset is within the selected size range."""
-    if (
-        minimum_size_bytes is not None
-        and asset.size_bytes < minimum_size_bytes
-    ):
-        return False
-
-    if (
-        maximum_size_bytes is not None
-        and asset.size_bytes > maximum_size_bytes
-    ):
-        return False
-
-    return True
-
-
-def _matches_modified_date(
-    asset: AssetFile,
-    modified_after: datetime | None,
-    modified_before: datetime | None,
-) -> bool:
-    """Return True when the modification date matches the range."""
-    try:
-        if (
-            modified_after is not None
-            and asset.modified_at < modified_after
-        ):
-            return False
-
-        if (
-            modified_before is not None
-            and asset.modified_at > modified_before
-        ):
-            return False
-    except TypeError as error:
-        raise ValueError(
-            "Asset and filter dates must use compatible "
-            "datetime values."
-        ) from error
-
-    return True
-
-
-def asset_matches_filter(
-    asset: AssetFile,
-    asset_filter: AssetFilter,
-) -> bool:
-    """Return True when an asset passes every active filter."""
-    return all(
-        (
-            _matches_search_text(
-                asset,
-                asset_filter.search_text,
-            ),
-            _matches_categories(
-                asset,
-                asset_filter.categories,
-            ),
-            _matches_extensions(
-                asset,
-                asset_filter.extensions,
-            ),
-            _matches_file_size(
-                asset,
-                asset_filter.minimum_size_bytes,
-                asset_filter.maximum_size_bytes,
-            ),
-            _matches_modified_date(
-                asset,
-                asset_filter.modified_after,
-                asset_filter.modified_before,
-            ),
-        )
-    )
-
-
-def filter_assets(
+def query_assets(
     assets: Iterable[AssetFile],
-    asset_filter: AssetFilter | None = None,
-) -> AssetFilterResult:
-    """
-    Filter scanned assets while preserving their existing order.
+    query: AssetQuery | None = None,
+) -> QueryResult:
+    """Return the assets that match every criterion, sorted as asked."""
+    active_query = (
+        query
+        if query is not None
+        else AssetQuery()
+    )
 
-    When no filter is supplied, every asset is returned.
-    """
     asset_list = list(
         assets
     )
 
-    active_filter = (
-        asset_filter
-        if asset_filter is not None
-        else AssetFilter()
-    )
-
-    matched_assets = tuple(
+    matched = [
         asset
         for asset in asset_list
-        if asset_matches_filter(
+        if _matches(
             asset,
-            active_filter,
+            active_query,
         )
+    ]
+
+    matched.sort(
+        key=_SORT_KEYS[active_query.sort_field],
+        reverse=(
+            active_query.sort_direction
+            is SortDirection.DESCENDING
+        ),
     )
 
-    return AssetFilterResult(
-        matched_assets=matched_assets,
+    return QueryResult(
+        matched=tuple(matched),
         total_count=len(asset_list),
     )
 
@@ -389,3 +248,208 @@ def collect_available_extensions(
     return tuple(
         sorted(extensions)
     )
+
+
+def collect_available_folders(
+    assets: Iterable[AssetFile],
+) -> tuple[Path, ...]:
+    """Return every unique parent folder found in scanned assets."""
+    available_folders = {
+        _normalize_relative_folder(
+            asset.relative_path.parent
+        )
+        for asset in assets
+    }
+
+    return tuple(
+        sorted(
+            available_folders,
+            key=lambda folder: (
+                folder != Path("."),
+                str(folder).casefold(),
+            ),
+        )
+    )
+
+
+def folder_display_name(
+    folder: Path,
+) -> str:
+    """Return a readable name for a project-relative folder."""
+    normalized_folder = _normalize_relative_folder(
+        folder
+    )
+
+    if normalized_folder == Path("."):
+        return "Project root"
+
+    return str(
+        normalized_folder
+    )
+
+
+def _matches(
+    asset: AssetFile,
+    query: AssetQuery,
+) -> bool:
+    """Return True when an asset passes every criterion of the query."""
+    if query.search_text:
+        searchable_text = " ".join(
+            (
+                asset.file_name,
+                str(asset.relative_path),
+                asset.extension,
+                str(asset.category),
+                str(asset.destination),
+            )
+        ).lower()
+
+        if not all(
+            word in searchable_text
+            for word in query.search_text.split()
+        ):
+            return False
+
+    if (
+        query.categories
+        and asset.category not in query.categories
+    ):
+        return False
+
+    if (
+        query.extensions
+        and asset.extension.lower() not in query.extensions
+    ):
+        return False
+
+    if (
+        query.minimum_size_bytes is not None
+        and asset.size_bytes < query.minimum_size_bytes
+    ):
+        return False
+
+    if (
+        query.maximum_size_bytes is not None
+        and asset.size_bytes > query.maximum_size_bytes
+    ):
+        return False
+
+    try:
+        if (
+            query.modified_after is not None
+            and asset.modified_at < query.modified_after
+        ):
+            return False
+
+        if (
+            query.modified_before is not None
+            and asset.modified_at > query.modified_before
+        ):
+            return False
+    except TypeError as error:
+        raise ValueError(
+            "Asset and filter dates must use compatible "
+            "datetime values."
+        ) from error
+
+    if query.folder is not None:
+        asset_folder = _normalize_relative_folder(
+            asset.relative_path.parent
+        )
+
+        if query.folder_match_mode is FolderMatchMode.EXACT_FOLDER:
+            return asset_folder == query.folder
+
+        return (
+            query.folder == Path(".")
+            or asset_folder.is_relative_to(query.folder)
+        )
+
+    return True
+
+
+def _normalize_extension(extension: str) -> str:
+    """Convert an extension into lowercase dot-prefixed form."""
+    normalized_extension = (
+        extension
+        .strip()
+        .lower()
+    )
+
+    if not normalized_extension:
+        return ""
+
+    if not normalized_extension.startswith("."):
+        normalized_extension = (
+            f".{normalized_extension}"
+        )
+
+    return normalized_extension
+
+
+def _normalize_relative_folder(
+    folder: str | Path,
+) -> Path:
+    """Return a safe project-relative folder path."""
+    normalized_folder = Path(
+        folder
+    )
+
+    if normalized_folder.is_absolute():
+        raise ValueError(
+            "The folder filter must be relative to the project."
+        )
+
+    normalized_parts = tuple(
+        part
+        for part in normalized_folder.parts
+        if part not in (
+            "",
+            ".",
+        )
+    )
+
+    if ".." in normalized_parts:
+        raise ValueError(
+            "The folder filter cannot leave the project folder."
+        )
+
+    if not normalized_parts:
+        return Path(".")
+
+    return Path(
+        *normalized_parts
+    )
+
+
+def _path_key(asset: AssetFile) -> str:
+    """Return the tie-breaking key shared by every sort order."""
+    return str(asset.relative_path).casefold()
+
+
+_SORT_KEYS: dict[SortField, Callable[[AssetFile], object]] = {
+    SortField.NAME: lambda asset: (
+        asset.file_name.casefold(),
+        _path_key(asset),
+    ),
+    SortField.CATEGORY: lambda asset: (
+        str(asset.category).casefold(),
+        _path_key(asset),
+    ),
+    SortField.EXTENSION: lambda asset: (
+        asset.extension.casefold(),
+        _path_key(asset),
+    ),
+    SortField.SIZE: lambda asset: (
+        asset.size_bytes,
+        _path_key(asset),
+    ),
+    SortField.CREATED: lambda asset: (
+        asset.created_at.timestamp(),
+        _path_key(asset),
+    ),
+    SortField.MODIFIED: lambda asset: (
+        asset.modified_at.timestamp(),
+        _path_key(asset),
+    ),
+}
