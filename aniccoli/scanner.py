@@ -1,4 +1,4 @@
-"""Folder-scanning tools for the Aniccoli asset organizer."""
+"""Folder-scanning tools for the Vibe with Crab asset organizer."""
 
 from __future__ import annotations
 
@@ -197,7 +197,7 @@ def scan_folder(
 
     except PermissionError as error:
         raise PermissionError(
-            f"Aniccoli cannot read this folder: {root_folder}"
+            f"Vibe with Crab cannot read this folder: {root_folder}"
         ) from error
 
     return sorted(

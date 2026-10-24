@@ -1,4 +1,4 @@
-"""Operating-system file actions for Aniccoli."""
+"""Operating-system file actions for Vibe with Crab."""
 
 from __future__ import annotations
 

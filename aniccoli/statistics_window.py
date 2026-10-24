@@ -1,4 +1,4 @@
-"""Project statistics window for Aniccoli."""
+"""Project statistics window for Vibe with Crab."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ class AssetStatisticsWindow(ctk.CTkToplevel):
 
         self.statistics = statistics
 
-        self.title("Aniccoli Project Statistics")
+        self.title("Vibe with Crab Project Statistics")
         self.geometry("1080x740")
         self.minsize(900, 620)
         self.transient(master)

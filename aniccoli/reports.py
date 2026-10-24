@@ -1,4 +1,4 @@
-"""Asset inventory report-export tools for Aniccoli."""
+"""Asset inventory report-export tools for Vibe with Crab."""
 
 from __future__ import annotations
 

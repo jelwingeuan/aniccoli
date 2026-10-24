@@ -1,4 +1,4 @@
-"""Organization-history and undo tools for Aniccoli."""
+"""Organization-history and undo tools for Vibe with Crab."""
 
 from __future__ import annotations
 
@@ -129,7 +129,7 @@ def _load_json_file(
 
     if not isinstance(data, dict):
         raise ValueError(
-            f"Invalid Aniccoli history file: {file_path}"
+            f"Invalid Vibe with Crab history file: {file_path}"
         )
 
     return data

@@ -1,4 +1,4 @@
-"""Asset health auditing tools for Aniccoli."""
+"""Asset health auditing tools for Vibe with Crab."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ class AuditSeverity(str, Enum):
 
 
 class AuditIssueType(str, Enum):
-    """Types of asset problems detected by Aniccoli."""
+    """Types of asset problems detected by Vibe with Crab."""
 
     EMPTY_FILE = "Empty file"
     LARGE_FILE = "Large file"

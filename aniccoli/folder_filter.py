@@ -1,4 +1,4 @@
-"""Parent-folder filtering tools for Aniccoli."""
+"""Parent-folder filtering tools for Vibe with Crab."""
 
 from __future__ import annotations
 

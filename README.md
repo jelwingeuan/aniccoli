@@ -1,10 +1,10 @@
-# Aniccoli
+# Vibe with Crab
 
-**Aniccoli** is a desktop asset-organizing tool for 3D artists, students, developers, and small creative teams.
+**Vibe with Crab** is a desktop asset-organizing tool for 3D artists, students, developers, and small creative teams.
 
 It scans project folders, categorizes assets, previews organization changes before moving files, detects exact duplicates, audits project health, exports inventory reports, and keeps recovery records for important file operations.
 
-> **Current development direction:** Aniccoli keeps its existing Python core while introducing an experimental **PySide6 + QML** interface for a more modern desktop experience.
+> **Current development direction:** Vibe with Crab keeps its existing Python core while introducing an experimental **PySide6 + QML** interface for a more modern desktop experience.
 
 ---
 
@@ -34,7 +34,7 @@ It scans project folders, categorizes assets, previews organization changes befo
 
 ## UI Options
 
-Aniccoli currently has two interface entry points.
+Vibe with Crab currently has two interface entry points.
 
 ### 1. Existing CustomTkinter interface
 

@@ -1,4 +1,4 @@
-"""Asset health-audit window for Aniccoli."""
+"""Asset health-audit window for Vibe with Crab."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from aniccoli.audit import (
 
 
 class AssetAuditWindow(ctk.CTkToplevel):
-    """Display the results of an Aniccoli asset health audit."""
+    """Display the results of an Vibe with Crab asset health audit."""
 
     def __init__(
         self,
@@ -26,7 +26,7 @@ class AssetAuditWindow(ctk.CTkToplevel):
 
         self.report = report
 
-        self.title("Aniccoli Asset Health")
+        self.title("Vibe with Crab Asset Health")
         self.geometry("1120x760")
         self.minsize(920, 620)
         self.transient(master)

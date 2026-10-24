@@ -1,4 +1,4 @@
-"""Main desktop window for Aniccoli."""
+"""Main desktop window for Vibe with Crab."""
 
 from __future__ import annotations
 
@@ -469,7 +469,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "project_statistics": "Project Statistics",
         "scan_before_export": "Scan a folder before exporting a report.",
         "select_before_export": "Select at least one asset before exporting.",
-        "export_title": "Export Aniccoli Asset Inventory",
+        "export_title": "Export Vibe with Crab Asset Inventory",
         "export_status": "Exporting the asset inventory report...",
         "export_failed_title": "Report Export Failed",
         "export_failed": "Report export failed: {error}",
@@ -498,7 +498,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "to": "To",
         "language_changed": "Language changed to {language}.",
         "help_title": "Help & shortcuts",
-        "help_intro": "Aniccoli helps you scan, review, organize, audit, and recover 3D project assets safely.",
+        "help_intro": "Vibe with Crab helps you scan, review, organize, audit, and recover 3D project assets safely.",
         "help_workflow": "Recommended workflow",
         "help_workflow_body": "1. Choose a project folder.\n2. Scan the project.\n3. Search, filter, and select assets.\n4. Preview organization.\n5. Confirm only after reviewing destinations.",
         "help_safety": "Safety",
@@ -592,7 +592,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "project_statistics": "Statistik projek",
         "scan_before_export": "Imbas folder sebelum mengeksport laporan.",
         "select_before_export": "Pilih sekurang-kurangnya satu aset sebelum mengeksport.",
-        "export_title": "Eksport inventori aset Aniccoli",
+        "export_title": "Eksport inventori aset Vibe with Crab",
         "export_status": "Sedang mengeksport laporan inventori aset...",
         "export_failed_title": "Eksport laporan gagal",
         "export_failed": "Eksport laporan gagal: {error}",
@@ -621,7 +621,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "to": "Ke",
         "language_changed": "Bahasa ditukar kepada {language}.",
         "help_title": "Bantuan & pintasan",
-        "help_intro": "Aniccoli membantu anda mengimbas, menyemak, menyusun, mengaudit dan memulihkan aset projek 3D dengan selamat.",
+        "help_intro": "Vibe with Crab membantu anda mengimbas, menyemak, menyusun, mengaudit dan memulihkan aset projek 3D dengan selamat.",
         "help_workflow": "Aliran kerja disyorkan",
         "help_workflow_body": "1. Pilih folder projek.\n2. Imbas projek.\n3. Cari, tapis dan pilih aset.\n4. Pratonton penyusunan.\n5. Sahkan selepas menyemak destinasi.",
         "help_safety": "Keselamatan",
@@ -715,7 +715,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "project_statistics": "项目统计",
         "scan_before_export": "导出报告前请先扫描文件夹。",
         "select_before_export": "导出前请至少选择一个素材。",
-        "export_title": "导出 Aniccoli 素材清单",
+        "export_title": "导出 Vibe with Crab 素材清单",
         "export_status": "正在导出素材清单报告...",
         "export_failed_title": "报告导出失败",
         "export_failed": "报告导出失败：{error}",
@@ -744,7 +744,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "to": "目标",
         "language_changed": "语言已切换为{language}。",
         "help_title": "帮助与快捷键",
-        "help_intro": "Aniccoli 帮助你安全地扫描、检查、整理、审核和恢复 3D 项目素材。",
+        "help_intro": "Vibe with Crab 帮助你安全地扫描、检查、整理、审核和恢复 3D 项目素材。",
         "help_workflow": "建议工作流程",
         "help_workflow_body": "1. 选择项目文件夹。\n2. 扫描项目。\n3. 搜索、筛选并选择素材。\n4. 预览整理方案。\n5. 检查目标位置后再确认。",
         "help_safety": "安全机制",
@@ -838,7 +838,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "project_statistics": "プロジェクト統計",
         "scan_before_export": "レポートを書き出す前にフォルダをスキャンしてください。",
         "select_before_export": "書き出す前に1つ以上のアセットを選択してください。",
-        "export_title": "Aniccoli アセット一覧を書き出す",
+        "export_title": "Vibe with Crab アセット一覧を書き出す",
         "export_status": "アセット一覧レポートを書き出しています...",
         "export_failed_title": "レポートの書き出しに失敗しました",
         "export_failed": "レポートの書き出しに失敗しました：{error}",
@@ -867,7 +867,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "to": "移動先",
         "language_changed": "言語を{language}に変更しました。",
         "help_title": "ヘルプとショートカット",
-        "help_intro": "Aniccoli は 3D プロジェクトのアセットを安全にスキャン、確認、整理、監査、復元するためのツールです。",
+        "help_intro": "Vibe with Crab は 3D プロジェクトのアセットを安全にスキャン、確認、整理、監査、復元するためのツールです。",
         "help_workflow": "おすすめの流れ",
         "help_workflow_body": "1. プロジェクトフォルダを選択。\n2. プロジェクトをスキャン。\n3. 検索、絞り込み、選択。\n4. 整理内容をプレビュー。\n5. 保存先を確認してから実行。",
         "help_safety": "安全機能",
@@ -915,7 +915,7 @@ def _save_ui_language(language_code: str) -> None:
         pass
 
 
-APP_NAME = "Aniccoli"
+APP_NAME = "Vibe with Crab"
 APP_VERSION = "1.0.0-rc.2"
 
 APP_STAGE = "RELEASE CANDIDATE"
@@ -973,8 +973,8 @@ MODIFIED_FILTER_OPTIONS: dict[str, int | None] = {
 }
 
 
-class AniccoliApp(ctk.CTk):
-    """Main application window for Aniccoli."""
+class VibeWithCrabApp(ctk.CTk):
+    """Main application window for Vibe with Crab."""
 
     def __init__(self) -> None:
         """Create and configure the application window."""
@@ -2789,7 +2789,7 @@ class AniccoliApp(ctk.CTk):
         )
 
     def _bind_keyboard_shortcuts(self) -> None:
-        """Bind cross-platform shortcuts for common Aniccoli actions."""
+        """Bind cross-platform shortcuts for common Vibe with Crab actions."""
         primary_prefix = (
             "Command"
             if sys.platform == "darwin"
@@ -3177,7 +3177,7 @@ class AniccoliApp(ctk.CTk):
         self._save_current_preferences()
 
     def _on_close(self) -> None:
-        """Save preferences before closing Aniccoli."""
+        """Save preferences before closing Vibe with Crab."""
         self._save_current_preferences()
         self.destroy()
 
@@ -4917,7 +4917,7 @@ class AniccoliApp(ctk.CTk):
         confirmed = messagebox.askyesno(
             title=self._t("confirm_organization"),
             message=(
-                f"Aniccoli will move {file_count} file"
+                f"Vibe with Crab will move {file_count} file"
                 f"{'' if file_count == 1 else 's'}.\n\n"
                 "Existing files will not be overwritten.\n"
                 "Do you want to continue?"
@@ -5033,7 +5033,7 @@ class AniccoliApp(ctk.CTk):
         confirmed = messagebox.askyesno(
             title=self._t("undo_title"),
             message=(
-                "Aniccoli will restore files from the latest "
+                "Vibe with Crab will restore files from the latest "
                 "organization operation to their original locations.\n\n"
                 "Existing files will not be overwritten.\n"
                 "Do you want to continue?"
@@ -5149,8 +5149,8 @@ class AniccoliApp(ctk.CTk):
         )
 
 
-def create_app() -> AniccoliApp:
-    """Create and return the Aniccoli application."""
+def create_app() -> VibeWithCrabApp:
+    """Create and return the Vibe with Crab application."""
     ctk.set_appearance_mode(
         "System"
     )
@@ -5159,4 +5159,4 @@ def create_app() -> AniccoliApp:
         "green"
     )
 
-    return AniccoliApp()
+    return VibeWithCrabApp()

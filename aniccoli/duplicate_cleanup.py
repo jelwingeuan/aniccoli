@@ -1,4 +1,4 @@
-"""Safe duplicate-cleanup and restoration tools for Aniccoli."""
+"""Safe duplicate-cleanup and restoration tools for Vibe with Crab."""
 
 from __future__ import annotations
 
@@ -229,7 +229,7 @@ def build_duplicate_cleanup_plan(
 
     The duplicate-results interface should pass only copies the user has
     explicitly selected for cleanup. This engine never permanently deletes
-    files; it moves them into Aniccoli's private project quarantine.
+    files; it moves them into Vibe with Crab's private project quarantine.
     """
     root_folder = Path(
         project_folder
@@ -460,7 +460,7 @@ def execute_duplicate_cleanup(
     plan: DuplicateCleanupPlan,
 ) -> DuplicateCleanupResult:
     """
-    Move selected duplicate copies into Aniccoli's private quarantine.
+    Move selected duplicate copies into Vibe with Crab's private quarantine.
 
     Existing files are never overwritten. No permanent deletion occurs.
     """

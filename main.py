@@ -1,10 +1,10 @@
-"""Entry point for the Aniccoli desktop application."""
+"""Entry point for the Vibe with Crab desktop application."""
 
 from aniccoli.app import create_app
 
 
 def main() -> None:
-    """Start the Aniccoli application."""
+    """Start the Vibe with Crab application."""
     app = create_app()
     app.mainloop()
 

@@ -1,4 +1,4 @@
-"""Help and application-information window for Aniccoli."""
+"""Help and application-information window for Vibe with Crab."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import customtkinter as ctk
 
 
 class AboutWindow(ctk.CTkToplevel):
-    """Display Aniccoli help, workflow guidance, and shortcuts."""
+    """Display Vibe with Crab help, workflow guidance, and shortcuts."""
 
     def __init__(
         self,
@@ -20,7 +20,7 @@ class AboutWindow(ctk.CTkToplevel):
         )
 
         self.title(
-            "About Aniccoli"
+            "About Vibe with Crab"
         )
 
         self.geometry(
@@ -98,7 +98,7 @@ class AboutWindow(ctk.CTkToplevel):
 
         title_label = ctk.CTkLabel(
             master=header_frame,
-            text="Aniccoli",
+            text="Vibe with Crab",
             font=ctk.CTkFont(
                 size=30,
                 weight="bold",
@@ -151,7 +151,7 @@ class AboutWindow(ctk.CTkToplevel):
         )
 
         intro_text = (
-            "Aniccoli is a local desktop organizer for 3D-production "
+            "Vibe with Crab is a local desktop organizer for 3D-production "
             "assets. It scans project folders, classifies files, previews "
             "safe organization plans, finds exact duplicates, exports "
             "reports, and keeps undo or restoration records."
@@ -160,7 +160,7 @@ class AboutWindow(ctk.CTkToplevel):
         self._create_section(
             parent=scroll_frame,
             row=0,
-            heading="What Aniccoli does",
+            heading="What Vibe with Crab does",
             body=intro_text,
         )
 
@@ -213,7 +213,7 @@ class AboutWindow(ctk.CTkToplevel):
         )
 
         storage_text = (
-            "Aniccoli stores its organization logs and duplicate-cleanup "
+            "Vibe with Crab stores its organization logs and duplicate-cleanup "
             "records inside a hidden .aniccoli folder within the selected "
             "project. Keep this folder while you may still need undo or "
             "restoration features."

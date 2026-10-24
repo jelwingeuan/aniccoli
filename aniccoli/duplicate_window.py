@@ -1,4 +1,4 @@
-"""Duplicate-analysis and safe-cleanup window for Aniccoli."""
+"""Duplicate-analysis and safe-cleanup window for Vibe with Crab."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ def _group_assets(
     """
     Return the AssetFile records stored in a duplicate group.
 
-    Earlier Aniccoli commits used slightly different field names while the
+    Earlier Vibe with Crab commits used slightly different field names while the
     duplicate engine was being built. Supporting those names keeps this
     window compatible with the user's current project.
     """
@@ -161,7 +161,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
         ] = {}
 
         self.title(
-            "Aniccoli Duplicate Results"
+            "Vibe with Crab Duplicate Results"
         )
 
         self.geometry(
@@ -271,7 +271,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
             master=header_frame,
             text=(
                 "Select only the copies you want to quarantine. "
-                "Aniccoli never permanently deletes them."
+                "Vibe with Crab never permanently deletes them."
             ),
             font=ctk.CTkFont(
                 size=13,

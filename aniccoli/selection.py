@@ -1,4 +1,4 @@
-"""Asset selection and exclusion tools for Aniccoli."""
+"""Asset selection and exclusion tools for Vibe with Crab."""
 
 from __future__ import annotations
 

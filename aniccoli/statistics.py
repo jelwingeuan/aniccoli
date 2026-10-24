@@ -1,4 +1,4 @@
-"""Asset statistics and project-summary tools for Aniccoli."""
+"""Asset statistics and project-summary tools for Vibe with Crab."""
 
 from __future__ import annotations
 

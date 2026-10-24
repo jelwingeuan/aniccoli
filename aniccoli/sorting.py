@@ -1,4 +1,4 @@
-"""Asset sorting tools for Aniccoli."""
+"""Asset sorting tools for Vibe with Crab."""
 
 from __future__ import annotations
 

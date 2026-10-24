@@ -1,4 +1,4 @@
-"""Duplicate-file detection tools for Aniccoli."""
+"""Duplicate-file detection tools for Vibe with Crab."""
 
 from __future__ import annotations
 
@@ -77,7 +77,7 @@ def calculate_sha256(
     Calculate the SHA-256 hash of one file.
 
     The file is read in chunks instead of loading its entire contents
-    into memory. This allows Aniccoli to process large 3D files safely.
+    into memory. This allows Vibe with Crab to process large 3D files safely.
 
     Args:
         file_path:
@@ -188,7 +188,7 @@ def find_duplicate_groups(
 
     Args:
         assets:
-            Scanned asset records from Aniccoli's folder scanner.
+            Scanned asset records from Vibe with Crab's folder scanner.
 
         include_empty:
             When False, zero-byte files are ignored. Empty files contain

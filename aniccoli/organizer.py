@@ -1,4 +1,4 @@
-"""Organization-planning, file-moving, and logging tools for Aniccoli."""
+"""Organization-planning, file-moving, and logging tools for Vibe with Crab."""
 
 from __future__ import annotations
 
@@ -147,7 +147,7 @@ def build_organization_plan(
     Files already located in their correct destination are skipped.
     Filename conflicts are resolved by creating a new filename.
 
-    When no organization options are provided, Aniccoli keeps its
+    When no organization options are provided, Vibe with Crab keeps its
     existing category-only folder structure.
     """
     root_folder = Path(

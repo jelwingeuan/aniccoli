@@ -1,4 +1,4 @@
-"""Configurable organization rules for Aniccoli."""
+"""Configurable organization rules for Vibe with Crab."""
 
 from __future__ import annotations
 

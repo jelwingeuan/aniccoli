@@ -1,4 +1,4 @@
-"""Asset category definitions and file-classification rules for Aniccoli."""
+"""Asset category definitions and file-classification rules for Vibe with Crab."""
 
 from enum import Enum
 from pathlib import Path
@@ -9,7 +9,7 @@ PathInput = Union[str, Path]
 
 
 class AssetCategory(str, Enum):
-    """Categories supported by the Aniccoli asset organizer."""
+    """Categories supported by the Vibe with Crab asset organizer."""
 
     BLENDER = "Blender"
     MAYA = "Maya"

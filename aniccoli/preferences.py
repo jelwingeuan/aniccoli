@@ -1,4 +1,4 @@
-"""Persistent application preferences for Aniccoli."""
+"""Persistent application preferences for Vibe with Crab."""
 
 from __future__ import annotations
 
@@ -206,7 +206,7 @@ def load_preferences(
     Load saved application preferences.
 
     Missing, damaged, or unsupported preference files safely return the
-    default settings instead of preventing Aniccoli from opening.
+    default settings instead of preventing Vibe with Crab from opening.
     """
     input_path = Path(
         preferences_path
