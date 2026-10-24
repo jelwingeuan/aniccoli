@@ -915,9 +915,9 @@ def _save_ui_language(language_code: str) -> None:
 
 
 APP_NAME = "Aniccoli"
-APP_VERSION = "1.0.0-rc.2"
+APP_VERSION = "1.0.0"
 
-APP_STAGE = "RELEASE CANDIDATE"
+APP_STAGE = "RELEASE"
 
 APP_BACKGROUND = ("#F3F6F4", "#101512")
 SIDEBAR_BACKGROUND = ("#E9F0EB", "#151C18")
