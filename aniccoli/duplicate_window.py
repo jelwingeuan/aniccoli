@@ -8,15 +8,16 @@ from tkinter import messagebox
 
 import customtkinter as ctk
 
-from aniccoli.duplicate_cleanup import (
-    NoDuplicateCleanupHistoryError,
-    build_duplicate_cleanup_plan,
-    execute_duplicate_cleanup,
-    find_latest_restorable_duplicate_cleanup,
-    restore_duplicate_cleanup,
-)
+from aniccoli.duplicate_cleanup import build_duplicate_cleanup_plan
 from aniccoli.duplicates import DuplicateGroup
 from aniccoli.file_actions import reveal_in_file_manager
+from aniccoli.moves import (
+    JournalKind,
+    NothingToReverseError,
+    apply_moves,
+    latest_journal,
+    reverse_latest,
+)
 from aniccoli.scanner import (
     AssetFile,
     format_file_size,
@@ -941,13 +942,13 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
         self.update_idletasks()
 
         try:
-            plan = build_duplicate_cleanup_plan(
-                project_folder=self.project_folder,
-                assets_to_quarantine=selected_records,
-            )
-
-            result = execute_duplicate_cleanup(
-                plan
+            result = apply_moves(
+                self.project_folder,
+                build_duplicate_cleanup_plan(
+                    project_folder=self.project_folder,
+                    assets_to_quarantine=selected_records,
+                ),
+                JournalKind.QUARANTINE,
             )
         except (
             FileNotFoundError,
@@ -970,20 +971,24 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
             )
             return
 
-        if result.failed_count:
+        quarantined_count = len(
+            result.done
+        )
+
+        if result.failed:
             messagebox.showwarning(
                 title="Duplicate Cleanup Partially Completed",
                 message=(
-                    f"Quarantined: {result.quarantined_count}\n"
-                    f"Failed: {result.failed_count}\n\n"
+                    f"Quarantined: {quarantined_count}\n"
+                    f"Failed: {len(result.failed)}\n\n"
                     "No failed item was deleted or overwritten."
                 ),
                 parent=self,
             )
         else:
             manifest_text = (
-                f"\n\nCleanup record:\n{result.manifest_path}"
-                if result.manifest_path is not None
+                f"\n\nCleanup record:\n{result.journal_path}"
+                if result.journal_path is not None
                 else ""
             )
 
@@ -991,14 +996,14 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
                 title="Duplicate Cleanup Complete",
                 message=(
                     f"Safely quarantined "
-                    f"{result.quarantined_count} duplicate "
-                    f"cop{'y' if result.quarantined_count == 1 else 'ies'}."
+                    f"{quarantined_count} duplicate "
+                    f"cop{'y' if quarantined_count == 1 else 'ies'}."
                     f"{manifest_text}"
                 ),
                 parent=self,
             )
 
-        if result.quarantined_count:
+        if quarantined_count:
             self._finish_project_change()
         else:
             self.cleanup_button.configure(
@@ -1011,11 +1016,13 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
         if self.project_folder is None:
             return
 
-        manifest_path = (
-            find_latest_restorable_duplicate_cleanup(
-                self.project_folder
+        try:
+            manifest_path = latest_journal(
+                self.project_folder,
+                JournalKind.QUARANTINE,
             )
-        )
+        except OSError:
+            manifest_path = None
 
         if manifest_path is None:
             messagebox.showinfo(
@@ -1042,12 +1049,12 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
             return
 
         try:
-            result = restore_duplicate_cleanup(
-                project_folder=self.project_folder,
-                manifest_path=manifest_path,
+            result = reverse_latest(
+                self.project_folder,
+                JournalKind.QUARANTINE,
             )
         except (
-            NoDuplicateCleanupHistoryError,
+            NothingToReverseError,
             FileNotFoundError,
             PermissionError,
             OSError,
@@ -1062,12 +1069,16 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
             )
             return
 
-        if result.failed_count:
+        restored_count = len(
+            result.done
+        )
+
+        if result.failed:
             messagebox.showwarning(
                 title="Duplicate Restore Partially Completed",
                 message=(
-                    f"Restored: {result.restored_count}\n"
-                    f"Failed: {result.failed_count}\n\n"
+                    f"Restored: {restored_count}\n"
+                    f"Failed: {len(result.failed)}\n\n"
                     "Existing files were not overwritten."
                 ),
                 parent=self,
@@ -1076,13 +1087,13 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
             messagebox.showinfo(
                 title="Duplicate Restore Complete",
                 message=(
-                    f"Restored {result.restored_count} file"
-                    f"{'' if result.restored_count == 1 else 's'}."
+                    f"Restored {restored_count} file"
+                    f"{'' if restored_count == 1 else 's'}."
                 ),
                 parent=self,
             )
 
-        if result.restored_count:
+        if restored_count:
             self._finish_project_change()
 
     def _finish_project_change(self) -> None:

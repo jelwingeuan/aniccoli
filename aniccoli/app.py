@@ -36,10 +36,12 @@ from aniccoli.folder_filter import (
     filter_assets_by_folder,
     folder_display_name,
 )
-from aniccoli.history import (
-    NoUndoHistoryError,
-    find_latest_undoable_log,
-    undo_latest_organization,
+from aniccoli.moves import (
+    JournalKind,
+    NothingToReverseError,
+    apply_moves,
+    latest_journal,
+    reverse_latest,
 )
 from aniccoli.organization_options import (
     DateGrouping,
@@ -51,7 +53,6 @@ from aniccoli.organizer import (
     PlannedMove,
     build_organization_plan,
     count_conflict_renames,
-    execute_organization_plan,
 )
 from aniccoli.preferences import (
     AppPreferences,
@@ -5159,9 +5160,13 @@ class AniccoliApp(ctk.CTk):
         self.update_idletasks()
 
         try:
-            result = execute_organization_plan(
-                project_folder=self.selected_folder,
-                planned_moves=self.organization_plan,
+            result = apply_moves(
+                self.selected_folder,
+                [
+                    planned_move.as_move()
+                    for planned_move in self.organization_plan
+                ],
+                JournalKind.ORGANIZE,
             )
         except (
             FileNotFoundError,
@@ -5185,12 +5190,20 @@ class AniccoliApp(ctk.CTk):
 
         preview_window.destroy()
 
-        if result.failed_count == 0:
+        moved_count = len(
+            result.done
+        )
+
+        failed_count = len(
+            result.failed
+        )
+
+        if failed_count == 0:
             messagebox.showinfo(
                 title=self._t("organization_complete_title"),
                 message=(
-                    f"{result.moved_count} file"
-                    f"{'' if result.moved_count == 1 else 's'} "
+                    f"{moved_count} file"
+                    f"{'' if moved_count == 1 else 's'} "
                     "were organized successfully."
                 ),
                 parent=self,
@@ -5199,14 +5212,11 @@ class AniccoliApp(ctk.CTk):
             messagebox.showwarning(
                 title=self._t("organization_partial_title"),
                 message=(
-                    f"Moved: {result.moved_count}\n"
-                    f"Failed: {result.failed_count}"
+                    f"Moved: {moved_count}\n"
+                    f"Failed: {failed_count}"
                 ),
                 parent=self,
             )
-
-        moved_count = result.moved_count
-        failed_count = result.failed_count
 
         self.organization_plan = []
 
@@ -5230,15 +5240,11 @@ class AniccoliApp(ctk.CTk):
             return
 
         try:
-            latest_log = find_latest_undoable_log(
-                self.selected_folder
+            latest_log = latest_journal(
+                self.selected_folder,
+                JournalKind.ORGANIZE,
             )
-        except (
-            FileNotFoundError,
-            NotADirectoryError,
-            OSError,
-            ValueError,
-        ):
+        except OSError:
             latest_log = None
 
         self.undo_button.configure(
@@ -5282,10 +5288,11 @@ class AniccoliApp(ctk.CTk):
         self.update_idletasks()
 
         try:
-            result = undo_latest_organization(
-                self.selected_folder
+            result = reverse_latest(
+                self.selected_folder,
+                JournalKind.ORGANIZE,
             )
-        except NoUndoHistoryError as error:
+        except NothingToReverseError as error:
             messagebox.showinfo(
                 title=self._t("nothing_undo"),
                 message=str(
@@ -5324,13 +5331,21 @@ class AniccoliApp(ctk.CTk):
                 text=self._t("undo_organize"),
             )
 
-        if result.failed_count == 0:
+        restored_count = len(
+            result.done
+        )
+
+        failed_count = len(
+            result.failed
+        )
+
+        if failed_count == 0:
             messagebox.showinfo(
                 title=self._t("undo_complete_title"),
                 message=(
-                    f"Restored: {result.restored_count}\n"
+                    f"Restored: {restored_count}\n"
                     f"Already restored: "
-                    f"{result.already_restored_count}\n"
+                    f"{len(result.skipped)}\n"
                     "Failed: 0"
                 ),
                 parent=self,
@@ -5338,28 +5353,25 @@ class AniccoliApp(ctk.CTk):
         else:
             failure_lines = [
                 (
-                    f"• {failure.undo_move.current_file_name}: "
-                    f"{failure.error_message}"
+                    f"• {failure.move.source.name}: "
+                    f"{failure.error}"
                 )
-                for failure in result.failed_files[:5]
+                for failure in result.failed[:5]
             ]
 
             messagebox.showwarning(
                 title=self._t("undo_partial_title"),
                 message=(
-                    f"Restored: {result.restored_count}\n"
+                    f"Restored: {restored_count}\n"
                     f"Already restored: "
-                    f"{result.already_restored_count}\n"
-                    f"Failed: {result.failed_count}\n\n"
+                    f"{len(result.skipped)}\n"
+                    f"Failed: {failed_count}\n\n"
                     + "\n".join(
                         failure_lines
                     )
                 ),
                 parent=self,
             )
-
-        restored_count = result.restored_count
-        failed_count = result.failed_count
 
         self._scan_selected_folder()
         self._refresh_undo_button()
