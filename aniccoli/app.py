@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -387,21 +388,21 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "workspace_title": "Asset workspace",
         "workspace_subtitle": "Review first, then organize with safe undo and restoration tools.",
         "help_shortcuts": "Help & shortcuts",
-        "project": "PROJECT",
+        "project": "Project",
         "selected_folder": "Selected folder",
         "no_folder": "No folder selected",
         "choose_project": "Choose project folder",
         "include_subfolders": "Include subfolders",
         "scan_project": "Scan project",
         "scanning": "Scanning...",
-        "workflow": "WORKFLOW",
+        "workflow": "Review and organize",
         "preview_organization": "Preview organization",
         "analyze_duplicates": "Analyze duplicates",
         "analyzing": "Analyzing...",
-        "organization": "ORGANIZATION",
+        "organization": "Organization",
         "date_grouping": "Date grouping",
         "date_source": "Date source",
-        "tools_recovery": "TOOLS & RECOVERY",
+        "tools_recovery": "Tools and recovery",
         "statistics": "Statistics",
         "calculating": "Calculating...",
         "asset_health": "Asset health",
@@ -410,16 +411,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "exporting": "Exporting...",
         "undo_organize": "Undo organize",
         "undoing": "Undoing...",
-        "status": "STATUS",
+        "status": "Status",
         "choose_begin": "Choose a folder to begin.",
-        "files_found": "FILES FOUND",
-        "files_scan": "Files in the current scan",
-        "combined_size": "COMBINED SIZE",
-        "total_size": "Total detected asset size",
-        "categories": "CATEGORIES",
-        "asset_groups": "Detected asset groups",
-        "selected": "SELECTED",
-        "selected_use": "Used for preview and export",
+        "files_found": "Files found",
+        "combined_size": "Combined size",
+        "categories": "Categories",
+        "selected": "Selected",
         "scanned_assets": "Scanned assets",
         "results_hint": "Filter and select the files used by organization and reports.",
         "showing_files": "Showing {visible} of {total} files",
@@ -431,12 +428,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "select_visible": "Select visible",
         "invert_visible": "Invert visible",
         "clear_selection": "Clear selection",
-        "use": "USE",
-        "asset": "ASSET",
-        "category": "CATEGORY",
-        "size": "SIZE",
-        "planned_destination": "PLANNED DESTINATION",
-        "action": "ACTION",
+        "use": "Use",
+        "asset": "Asset",
+        "category": "Category",
+        "size": "Size",
+        "planned_destination": "Planned destination",
+        "action": "",
         "empty_initial": "No scan results yet.\nChoose a project folder from the sidebar.",
         "empty_folder_selected": "Folder selected.\nClick Scan Project to inspect its assets.",
         "empty_no_files": "No supported or visible files were found.",
@@ -504,27 +501,33 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "help_safety_body": "Organization uses previews and undo history. Duplicate cleanup uses quarantine instead of permanent deletion.",
         "help_keys": "Keyboard shortcuts",
         "close": "Close",
+        "group_scenes": "Scenes",
+        "group_models": "Models",
+        "group_textures": "Textures",
+        "group_unity": "Unity assets",
+        "group_media": "Media",
+        "group_other": "Other",
     },
     "ms": {
         "language": "Bahasa",
         "workspace_title": "Ruang kerja aset",
         "workspace_subtitle": "Semak dahulu, kemudian susun dengan alat buat asal dan pemulihan yang selamat.",
         "help_shortcuts": "Bantuan & pintasan",
-        "project": "PROJEK",
+        "project": "Projek",
         "selected_folder": "Folder dipilih",
         "no_folder": "Tiada folder dipilih",
         "choose_project": "Pilih folder projek",
         "include_subfolders": "Sertakan subfolder",
         "scan_project": "Imbas projek",
         "scanning": "Mengimbas...",
-        "workflow": "ALIRAN KERJA",
+        "workflow": "Semak dan susun",
         "preview_organization": "Pratonton susunan",
         "analyze_duplicates": "Analisis pendua",
         "analyzing": "Menganalisis...",
-        "organization": "PENYUSUNAN",
+        "organization": "Penyusunan",
         "date_grouping": "Pengumpulan tarikh",
         "date_source": "Sumber tarikh",
-        "tools_recovery": "ALAT & PEMULIHAN",
+        "tools_recovery": "Alat dan pemulihan",
         "statistics": "Statistik",
         "calculating": "Mengira...",
         "asset_health": "Kesihatan aset",
@@ -533,16 +536,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "exporting": "Mengeksport...",
         "undo_organize": "Buat asal susunan",
         "undoing": "Membuat asal...",
-        "status": "STATUS",
+        "status": "Status",
         "choose_begin": "Pilih folder untuk bermula.",
-        "files_found": "FAIL DITEMUI",
-        "files_scan": "Fail dalam imbasan semasa",
-        "combined_size": "SAIZ GABUNGAN",
-        "total_size": "Jumlah saiz aset dikesan",
-        "categories": "KATEGORI",
-        "asset_groups": "Kumpulan aset dikesan",
-        "selected": "DIPILIH",
-        "selected_use": "Digunakan untuk pratonton dan eksport",
+        "files_found": "Fail ditemui",
+        "combined_size": "Saiz gabungan",
+        "categories": "Kategori",
+        "selected": "Dipilih",
         "scanned_assets": "Aset diimbas",
         "results_hint": "Tapis dan pilih fail untuk penyusunan dan laporan.",
         "showing_files": "Memaparkan {visible} daripada {total} fail",
@@ -554,12 +553,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "select_visible": "Pilih yang kelihatan",
         "invert_visible": "Songsangkan pilihan",
         "clear_selection": "Kosongkan pilihan",
-        "use": "GUNA",
-        "asset": "ASET",
-        "category": "KATEGORI",
-        "size": "SAIZ",
-        "planned_destination": "DESTINASI DIRANCANG",
-        "action": "TINDAKAN",
+        "use": "Guna",
+        "asset": "Aset",
+        "category": "Kategori",
+        "size": "Saiz",
+        "planned_destination": "Destinasi dirancang",
+        "action": "",
         "empty_initial": "Belum ada hasil imbasan.\nPilih folder projek dari bar sisi.",
         "empty_folder_selected": "Folder dipilih.\nKlik Imbas projek untuk memeriksa aset.",
         "empty_no_files": "Tiada fail yang disokong atau kelihatan ditemui.",
@@ -627,6 +626,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "help_safety_body": "Penyusunan menggunakan pratonton dan sejarah buat asal. Pembersihan pendua menggunakan kuarantin, bukan pemadaman kekal.",
         "help_keys": "Pintasan papan kekunci",
         "close": "Tutup",
+        "group_scenes": "Adegan",
+        "group_models": "Model",
+        "group_textures": "Tekstur",
+        "group_unity": "Aset Unity",
+        "group_media": "Media",
+        "group_other": "Lain-lain",
     },
     "zh": {
         "language": "语言",
@@ -659,13 +664,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "status": "状态",
         "choose_begin": "请选择文件夹开始。",
         "files_found": "找到的文件",
-        "files_scan": "当前扫描中的文件",
         "combined_size": "总大小",
-        "total_size": "检测到的素材总大小",
         "categories": "类别",
-        "asset_groups": "检测到的素材类别",
         "selected": "已选择",
-        "selected_use": "用于预览和导出",
         "scanned_assets": "已扫描素材",
         "results_hint": "筛选并选择用于整理和报告的文件。",
         "showing_files": "显示 {visible} / {total} 个文件",
@@ -682,7 +683,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "category": "类别",
         "size": "大小",
         "planned_destination": "计划目标位置",
-        "action": "操作",
+        "action": "",
         "empty_initial": "尚无扫描结果。\n请从侧边栏选择项目文件夹。",
         "empty_folder_selected": "已选择文件夹。\n点击“扫描项目”检查素材。",
         "empty_no_files": "未找到受支持或可见的文件。",
@@ -750,6 +751,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "help_safety_body": "整理操作使用预览和撤销记录。重复文件清理使用隔离区，而不是永久删除。",
         "help_keys": "键盘快捷键",
         "close": "关闭",
+        "group_scenes": "场景",
+        "group_models": "模型",
+        "group_textures": "纹理",
+        "group_unity": "Unity 素材",
+        "group_media": "媒体",
+        "group_other": "其他",
     },
     "ja": {
         "language": "言語",
@@ -782,13 +789,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "status": "ステータス",
         "choose_begin": "開始するフォルダを選択してください。",
         "files_found": "検出ファイル",
-        "files_scan": "現在のスキャン内のファイル",
         "combined_size": "合計サイズ",
-        "total_size": "検出アセットの合計サイズ",
         "categories": "カテゴリ",
-        "asset_groups": "検出されたアセット分類",
         "selected": "選択済み",
-        "selected_use": "プレビューと書き出しに使用",
         "scanned_assets": "スキャン済みアセット",
         "results_hint": "整理とレポートに使用するファイルを絞り込み、選択します。",
         "showing_files": "{total} 件中 {visible} 件を表示",
@@ -805,7 +808,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "category": "カテゴリ",
         "size": "サイズ",
         "planned_destination": "予定の保存先",
-        "action": "操作",
+        "action": "",
         "empty_initial": "スキャン結果はまだありません。\nサイドバーからプロジェクトフォルダを選択してください。",
         "empty_folder_selected": "フォルダを選択しました。\n「プロジェクトをスキャン」をクリックしてください。",
         "empty_no_files": "対応する表示可能なファイルが見つかりませんでした。",
@@ -873,6 +876,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "help_safety_body": "整理にはプレビューと元に戻す履歴を使用します。重複の整理は永久削除ではなく隔離を使用します。",
         "help_keys": "キーボードショートカット",
         "close": "閉じる",
+        "group_scenes": "シーン",
+        "group_models": "モデル",
+        "group_textures": "テクスチャ",
+        "group_unity": "Unity アセット",
+        "group_media": "メディア",
+        "group_other": "その他",
     },
 }
 
@@ -917,20 +926,71 @@ def _save_ui_language(language_code: str) -> None:
 APP_NAME = "Aniccoli"
 APP_VERSION = "1.0.0"
 
-APP_STAGE = "RELEASE"
+APP_BACKGROUND = ("#ECEEE9", "#252726")
+SIDEBAR_BACKGROUND = ("#E1E4DE", "#1F2120")
+PANEL_BACKGROUND = ("#F7F8F5", "#2C2E2D")
+CARD_BACKGROUND = ("#FFFFFF", "#313332")
+ROW_BACKGROUND = ("#FFFFFF", "#313332")
+ROW_ALT_BACKGROUND = ("#F3F5F1", "#2C2E2D")
+BORDER_COLOR = ("#D2D7CF", "#3A3D3B")
+TEXT_COLOR = ("#1E231F", "#E3E6E1")
+MUTED_TEXT = ("#5B635C", "#9AA19A")
+ACCENT_COLOR = ("#2E6B3A", "#7DBF73")
+ACCENT_HOVER = ("#245830", "#6AAE60")
+ACCENT_SOFT = ("#DCE9D8", "#2C3D2C")
+DANGER_TEXT = ("#8E3B2C", "#E79B8C")
+DANGER_SOFT = ("#F2DEDA", "#45302C")
+CONTROL_BUTTON = ("#E1E4DE", "#3A3D3B")
+CONTROL_HOVER = ("#D2D7CF", "#454947")
 
-APP_BACKGROUND = ("#F3F6F4", "#101512")
-SIDEBAR_BACKGROUND = ("#E9F0EB", "#151C18")
-PANEL_BACKGROUND = ("#FFFFFF", "#1B231E")
-CARD_BACKGROUND = ("#F9FBFA", "#202A24")
-ROW_BACKGROUND = ("#FFFFFF", "#1D251F")
-ROW_ALT_BACKGROUND = ("#F5F8F6", "#202922")
-BORDER_COLOR = ("#D8E2DB", "#324038")
-MUTED_TEXT = ("#617067", "#9BAAA0")
-ACCENT_COLOR = ("#247A4D", "#46B978")
-ACCENT_HOVER = ("#1D6841", "#3AA368")
-ACCENT_SOFT = ("#DCEFE3", "#203F2D")
-DANGER_SOFT = ("#F6E2E2", "#432727")
+PATH_FONT_FAMILY = (
+    "Menlo"
+    if sys.platform == "darwin"
+    else "Consolas"
+    if sys.platform.startswith("win")
+    else "DejaVu Sans Mono"
+)
+
+# Colour is reserved for asset type: the composition bar, legend, and
+# row stripes all use these, so one hue always means one kind of file.
+CATEGORY_GROUP_COLORS: dict[str, tuple[str, str]] = {
+    "scenes": ("#A9531A", "#E8995A"),
+    "models": ("#2D74A8", "#72AEDB"),
+    "textures": ("#806500", "#DDBB4C"),
+    "unity": ("#6A55AE", "#A996E0"),
+    "media": ("#1A7A70", "#62C2B6"),
+    "other": ("#6B716C", "#9BA19C"),
+}
+
+
+def _category_group(category: AssetCategory) -> str:
+    """Return the colour group an asset category belongs to."""
+    if category in (
+        AssetCategory.BLENDER,
+        AssetCategory.MAYA,
+        AssetCategory.UNITY_SCENE,
+    ):
+        return "scenes"
+
+    if category.name.startswith("TEXTURE_"):
+        return "textures"
+
+    if category.name.startswith("UNITY_"):
+        return "unity"
+
+    if category.value.endswith("Model"):
+        return "models"
+
+    if category in (
+        AssetCategory.REFERENCE,
+        AssetCategory.RENDER,
+        AssetCategory.AUDIO,
+        AssetCategory.VIDEO,
+    ):
+        return "media"
+
+    return "other"
+
 
 ALL_CATEGORIES = "All categories"
 ALL_EXTENSIONS = "All extensions"
@@ -1389,12 +1449,11 @@ class AniccoliApp(ctk.CTk):
 
         stage_label = ctk.CTkLabel(
             master=brand_frame,
-            text=f"{APP_STAGE}  •  {APP_VERSION}",
+            text=f"v{APP_VERSION}",
             font=ctk.CTkFont(
                 size=11,
-                weight="bold",
             ),
-            text_color=ACCENT_COLOR,
+            text_color=MUTED_TEXT,
             anchor="w",
         )
 
@@ -1426,7 +1485,7 @@ class AniccoliApp(ctk.CTk):
             master=workspace_header,
             text=self._t("workspace_title"),
             font=ctk.CTkFont(
-                size=28,
+                size=24,
                 weight="bold",
             ),
             anchor="w",
@@ -1471,8 +1530,7 @@ class AniccoliApp(ctk.CTk):
             master=language_frame,
             text=self._t("language"),
             font=ctk.CTkFont(
-                size=10,
-                weight="bold",
+                size=11,
             ),
             text_color=MUTED_TEXT,
             anchor="w",
@@ -1494,9 +1552,9 @@ class AniccoliApp(ctk.CTk):
             height=34,
             corner_radius=9,
             fg_color=CARD_BACKGROUND,
-            button_color=ACCENT_COLOR,
-            button_hover_color=ACCENT_HOVER,
-            text_color=("#27332C", "#E6EEE9"),
+            button_color=CONTROL_BUTTON,
+            button_hover_color=CONTROL_HOVER,
+            text_color=TEXT_COLOR,
         )
 
         self.language_menu.pack()
@@ -1512,7 +1570,7 @@ class AniccoliApp(ctk.CTk):
             hover_color=ACCENT_SOFT,
             border_width=1,
             border_color=BORDER_COLOR,
-            text_color=("#27332C", "#E6EEE9"),
+            text_color=TEXT_COLOR,
         )
 
         help_button.grid(
@@ -1528,10 +1586,10 @@ class AniccoliApp(ctk.CTk):
             master=self.sidebar,
             text=self._t("project"),
             font=ctk.CTkFont(
-                size=11,
+                size=13,
                 weight="bold",
             ),
-            text_color=MUTED_TEXT,
+            text_color=TEXT_COLOR,
             anchor="w",
         )
 
@@ -1545,17 +1603,14 @@ class AniccoliApp(ctk.CTk):
 
         project_card = ctk.CTkFrame(
             master=self.sidebar,
-            corner_radius=14,
-            fg_color=PANEL_BACKGROUND,
-            border_width=1,
-            border_color=BORDER_COLOR,
+            fg_color="transparent",
         )
 
         project_card.grid(
             row=2,
             column=0,
             sticky="ew",
-            padx=14,
+            padx=8,
             pady=(0, 18),
         )
 
@@ -1613,7 +1668,7 @@ class AniccoliApp(ctk.CTk):
             hover_color=ACCENT_SOFT,
             border_width=1,
             border_color=BORDER_COLOR,
-            text_color=("#27332C", "#E6EEE9"),
+            text_color=TEXT_COLOR,
             font=ctk.CTkFont(
                 size=13,
                 weight="bold",
@@ -1677,10 +1732,10 @@ class AniccoliApp(ctk.CTk):
             master=self.sidebar,
             text=self._t("workflow"),
             font=ctk.CTkFont(
-                size=11,
+                size=13,
                 weight="bold",
             ),
-            text_color=MUTED_TEXT,
+            text_color=TEXT_COLOR,
             anchor="w",
         )
 
@@ -1694,17 +1749,14 @@ class AniccoliApp(ctk.CTk):
 
         workflow_card = ctk.CTkFrame(
             master=self.sidebar,
-            corner_radius=14,
-            fg_color=PANEL_BACKGROUND,
-            border_width=1,
-            border_color=BORDER_COLOR,
+            fg_color="transparent",
         )
 
         workflow_card.grid(
             row=4,
             column=0,
             sticky="ew",
-            padx=14,
+            padx=8,
             pady=(0, 18),
         )
 
@@ -1747,7 +1799,7 @@ class AniccoliApp(ctk.CTk):
             hover_color=ACCENT_SOFT,
             border_width=1,
             border_color=BORDER_COLOR,
-            text_color=("#27332C", "#E6EEE9"),
+            text_color=TEXT_COLOR,
         )
 
         self.duplicate_button.grid(
@@ -1762,10 +1814,10 @@ class AniccoliApp(ctk.CTk):
             master=self.sidebar,
             text=self._t("organization"),
             font=ctk.CTkFont(
-                size=11,
+                size=13,
                 weight="bold",
             ),
-            text_color=MUTED_TEXT,
+            text_color=TEXT_COLOR,
             anchor="w",
         )
 
@@ -1779,17 +1831,14 @@ class AniccoliApp(ctk.CTk):
 
         organization_card = ctk.CTkFrame(
             master=self.sidebar,
-            corner_radius=14,
-            fg_color=PANEL_BACKGROUND,
-            border_width=1,
-            border_color=BORDER_COLOR,
+            fg_color="transparent",
         )
 
         organization_card.grid(
             row=6,
             column=0,
             sticky="ew",
-            padx=14,
+            padx=8,
             pady=(0, 18),
         )
 
@@ -1829,9 +1878,9 @@ class AniccoliApp(ctk.CTk):
             height=36,
             corner_radius=9,
             fg_color=CARD_BACKGROUND,
-            button_color=ACCENT_COLOR,
-            button_hover_color=ACCENT_HOVER,
-            text_color=("#27332C", "#E6EEE9"),
+            button_color=CONTROL_BUTTON,
+            button_hover_color=CONTROL_HOVER,
+            text_color=TEXT_COLOR,
         )
 
         self.date_grouping_menu.grid(
@@ -1874,9 +1923,9 @@ class AniccoliApp(ctk.CTk):
             state="disabled",
             corner_radius=9,
             fg_color=CARD_BACKGROUND,
-            button_color=ACCENT_COLOR,
-            button_hover_color=ACCENT_HOVER,
-            text_color=("#27332C", "#E6EEE9"),
+            button_color=CONTROL_BUTTON,
+            button_hover_color=CONTROL_HOVER,
+            text_color=TEXT_COLOR,
         )
 
         self.date_source_menu.grid(
@@ -1891,10 +1940,10 @@ class AniccoliApp(ctk.CTk):
             master=self.sidebar,
             text=self._t("tools_recovery"),
             font=ctk.CTkFont(
-                size=11,
+                size=13,
                 weight="bold",
             ),
-            text_color=MUTED_TEXT,
+            text_color=TEXT_COLOR,
             anchor="w",
         )
 
@@ -1908,17 +1957,14 @@ class AniccoliApp(ctk.CTk):
 
         tools_card = ctk.CTkFrame(
             master=self.sidebar,
-            corner_radius=14,
-            fg_color=PANEL_BACKGROUND,
-            border_width=1,
-            border_color=BORDER_COLOR,
+            fg_color="transparent",
         )
 
         tools_card.grid(
             row=8,
             column=0,
             sticky="ew",
-            padx=14,
+            padx=8,
             pady=(0, 18),
         )
 
@@ -1939,7 +1985,7 @@ class AniccoliApp(ctk.CTk):
             hover_color=ACCENT_SOFT,
             border_width=1,
             border_color=BORDER_COLOR,
-            text_color=("#27332C", "#E6EEE9"),
+            text_color=TEXT_COLOR,
         )
 
         self.statistics_button.grid(
@@ -1961,7 +2007,7 @@ class AniccoliApp(ctk.CTk):
             hover_color=ACCENT_SOFT,
             border_width=1,
             border_color=BORDER_COLOR,
-            text_color=("#27332C", "#E6EEE9"),
+            text_color=TEXT_COLOR,
         )
 
         self.audit_button.grid(
@@ -1983,7 +2029,7 @@ class AniccoliApp(ctk.CTk):
             hover_color=ACCENT_SOFT,
             border_width=1,
             border_color=BORDER_COLOR,
-            text_color=("#27332C", "#E6EEE9"),
+            text_color=TEXT_COLOR,
         )
 
         self.export_button.grid(
@@ -2005,7 +2051,7 @@ class AniccoliApp(ctk.CTk):
             hover_color=DANGER_SOFT,
             border_width=1,
             border_color=BORDER_COLOR,
-            text_color=("#7A3030", "#F0B8B8"),
+            text_color=DANGER_TEXT,
         )
 
         self.undo_button.grid(
@@ -2034,7 +2080,7 @@ class AniccoliApp(ctk.CTk):
             master=status_card,
             text=self._t("status"),
             font=ctk.CTkFont(
-                size=10,
+                size=11,
                 weight="bold",
             ),
             text_color=ACCENT_COLOR,
@@ -2065,7 +2111,7 @@ class AniccoliApp(ctk.CTk):
         )
 
     def _create_summary_section(self) -> None:
-        """Create the scan-summary cards."""
+        """Create the scan totals and the category composition bar."""
         summary_frame = ctk.CTkFrame(
             master=self.workspace,
             fg_color="transparent",
@@ -2075,124 +2121,205 @@ class AniccoliApp(ctk.CTk):
             row=1,
             column=0,
             sticky="ew",
-            pady=(0, 16),
+            pady=(0, 18),
         )
 
         summary_frame.grid_columnconfigure(
-            (0, 1, 2, 3),
+            4,
             weight=1,
-            uniform="summary",
         )
 
-        self.files_count_label = self._create_summary_card(
+        self.files_count_label = self._create_summary_figure(
             parent=summary_frame,
             column=0,
             heading=self._t("files_found"),
             starting_value="0",
-            accent=self._t("files_scan"),
         )
 
-        self.total_size_label = self._create_summary_card(
+        self.total_size_label = self._create_summary_figure(
             parent=summary_frame,
             column=1,
             heading=self._t("combined_size"),
             starting_value="0 B",
-            accent=self._t("total_size"),
         )
 
-        self.categories_count_label = self._create_summary_card(
+        self.categories_count_label = self._create_summary_figure(
             parent=summary_frame,
             column=2,
             heading=self._t("categories"),
             starting_value="0",
-            accent=self._t("asset_groups"),
         )
 
-        self.selection_count_label = self._create_summary_card(
+        self.selection_count_label = self._create_summary_figure(
             parent=summary_frame,
             column=3,
             heading=self._t("selected"),
             starting_value="0 / 0",
-            accent=self._t("selected_use"),
         )
 
-    def _create_summary_card(
+        self.category_bar = ctk.CTkFrame(
+            master=summary_frame,
+            fg_color="transparent",
+            height=10,
+        )
+
+        self.category_bar.grid(
+            row=1,
+            column=0,
+            columnspan=5,
+            sticky="ew",
+            pady=(14, 8),
+        )
+
+        self.category_legend = ctk.CTkFrame(
+            master=summary_frame,
+            fg_color="transparent",
+            height=18,
+        )
+
+        self.category_legend.grid(
+            row=2,
+            column=0,
+            columnspan=5,
+            sticky="ew",
+        )
+
+        self._refresh_category_bar()
+
+    def _create_summary_figure(
         self,
         parent: ctk.CTkFrame,
         column: int,
         heading: str,
         starting_value: str,
-        accent: str,
     ) -> ctk.CTkLabel:
-        """Create a summary card and return its value label."""
-        card = ctk.CTkFrame(
+        """Create one summary figure and return its value label."""
+        figure_frame = ctk.CTkFrame(
             master=parent,
-            corner_radius=14,
-            fg_color=PANEL_BACKGROUND,
-            border_width=1,
-            border_color=BORDER_COLOR,
+            fg_color="transparent",
         )
 
-        card.grid(
+        figure_frame.grid(
             row=0,
             column=column,
-            sticky="nsew",
-            padx=(
-                0 if column == 0 else 6,
-                0 if column == 3 else 6,
-            ),
-        )
-
-        heading_label = ctk.CTkLabel(
-            master=card,
-            text=heading,
-            font=ctk.CTkFont(
-                size=10,
-                weight="bold",
-            ),
-            text_color=MUTED_TEXT,
-            anchor="w",
-        )
-
-        heading_label.pack(
-            fill="x",
-            padx=16,
-            pady=(14, 4),
+            sticky="w",
+            padx=(0, 40),
         )
 
         value_label = ctk.CTkLabel(
-            master=card,
+            master=figure_frame,
             text=starting_value,
             font=ctk.CTkFont(
-                size=25,
+                size=21,
                 weight="bold",
             ),
             anchor="w",
+            height=28,
         )
 
         value_label.pack(
-            fill="x",
-            padx=16,
-            pady=(0, 1),
+            anchor="w",
         )
 
-        accent_label = ctk.CTkLabel(
-            master=card,
-            text=accent,
+        heading_label = ctk.CTkLabel(
+            master=figure_frame,
+            text=heading,
             font=ctk.CTkFont(
                 size=11,
             ),
             text_color=MUTED_TEXT,
             anchor="w",
+            height=16,
         )
 
-        accent_label.pack(
-            fill="x",
-            padx=16,
-            pady=(0, 14),
+        heading_label.pack(
+            anchor="w",
         )
 
         return value_label
+
+    def _refresh_category_bar(self) -> None:
+        """Redraw the composition bar and legend from the scanned assets."""
+        for widget in (
+            *self.category_bar.winfo_children(),
+            *self.category_legend.winfo_children(),
+        ):
+            widget.destroy()
+
+        group_counts = Counter(
+            _category_group(asset.category)
+            for asset in self.scanned_assets
+        )
+
+        # An empty scan still draws one grey track so the layout never jumps.
+        segments = [
+            (group, CATEGORY_GROUP_COLORS[group], group_counts[group])
+            for group in CATEGORY_GROUP_COLORS
+            if group_counts[group]
+        ] or [("", BORDER_COLOR, 1)]
+
+        for column in range(len(CATEGORY_GROUP_COLORS)):
+            self.category_bar.grid_columnconfigure(
+                column,
+                weight=0,
+            )
+
+        for column, (group, color, count) in enumerate(
+            segments
+        ):
+            self.category_bar.grid_columnconfigure(
+                column,
+                weight=count,
+            )
+
+            segment = ctk.CTkFrame(
+                master=self.category_bar,
+                width=1,
+                height=10,
+                corner_radius=3,
+                fg_color=color,
+            )
+
+            segment.grid(
+                row=0,
+                column=column,
+                sticky="ew",
+                padx=(
+                    0,
+                    0 if column == len(segments) - 1 else 2,
+                ),
+            )
+
+            if not group:
+                continue
+
+            legend_dot = ctk.CTkFrame(
+                master=self.category_legend,
+                width=8,
+                height=8,
+                corner_radius=4,
+                fg_color=color,
+            )
+
+            legend_dot.pack(
+                side="left",
+                padx=(0, 6),
+            )
+
+            legend_label = ctk.CTkLabel(
+                master=self.category_legend,
+                text=f"{self._t('group_' + group)}  {count}",
+                font=ctk.CTkFont(
+                    size=11,
+                ),
+                text_color=MUTED_TEXT,
+                height=18,
+            )
+
+            legend_label.pack(
+                side="left",
+                padx=(0, 18),
+            )
 
     def _create_results_section(self) -> None:
         """Create filters and the scrollable results section."""
@@ -2242,7 +2369,7 @@ class AniccoliApp(ctk.CTk):
             master=heading_frame,
             text=self._t("scanned_assets"),
             font=ctk.CTkFont(
-                size=18,
+                size=16,
                 weight="bold",
             ),
             anchor="w",
@@ -2305,8 +2432,7 @@ class AniccoliApp(ctk.CTk):
 
         results_header = ctk.CTkFrame(
             master=results_card,
-            corner_radius=9,
-            fg_color=CARD_BACKGROUND,
+            fg_color="transparent",
         )
 
         results_header.grid(
@@ -2376,8 +2502,7 @@ class AniccoliApp(ctk.CTk):
         """Create compact search, filtering, sorting, and selection controls."""
         filter_frame = ctk.CTkFrame(
             master=parent,
-            corner_radius=12,
-            fg_color=CARD_BACKGROUND,
+            fg_color="transparent",
         )
 
         filter_frame.grid(
@@ -2432,7 +2557,7 @@ class AniccoliApp(ctk.CTk):
             hover_color=ACCENT_SOFT,
             border_width=1,
             border_color=BORDER_COLOR,
-            text_color=("#27332C", "#E6EEE9"),
+            text_color=TEXT_COLOR,
         )
 
         clear_button.grid(
@@ -2450,10 +2575,10 @@ class AniccoliApp(ctk.CTk):
             command=lambda _value: self._apply_filters(),
             height=36,
             corner_radius=9,
-            fg_color=PANEL_BACKGROUND,
-            button_color=ACCENT_COLOR,
-            button_hover_color=ACCENT_HOVER,
-            text_color=("#27332C", "#E6EEE9"),
+            fg_color=CARD_BACKGROUND,
+            button_color=CONTROL_BUTTON,
+            button_hover_color=CONTROL_HOVER,
+            text_color=TEXT_COLOR,
         )
 
         self.category_filter_menu.grid(
@@ -2471,10 +2596,10 @@ class AniccoliApp(ctk.CTk):
             command=lambda _value: self._apply_filters(),
             height=36,
             corner_radius=9,
-            fg_color=PANEL_BACKGROUND,
-            button_color=ACCENT_COLOR,
-            button_hover_color=ACCENT_HOVER,
-            text_color=("#27332C", "#E6EEE9"),
+            fg_color=CARD_BACKGROUND,
+            button_color=CONTROL_BUTTON,
+            button_hover_color=CONTROL_HOVER,
+            text_color=TEXT_COLOR,
         )
 
         self.extension_filter_menu.grid(
@@ -2492,10 +2617,10 @@ class AniccoliApp(ctk.CTk):
             command=lambda _value: self._apply_filters(),
             height=36,
             corner_radius=9,
-            fg_color=PANEL_BACKGROUND,
-            button_color=ACCENT_COLOR,
-            button_hover_color=ACCENT_HOVER,
-            text_color=("#27332C", "#E6EEE9"),
+            fg_color=CARD_BACKGROUND,
+            button_color=CONTROL_BUTTON,
+            button_hover_color=CONTROL_HOVER,
+            text_color=TEXT_COLOR,
         )
 
         self.size_filter_menu.grid(
@@ -2513,10 +2638,10 @@ class AniccoliApp(ctk.CTk):
             command=lambda _value: self._apply_filters(),
             height=36,
             corner_radius=9,
-            fg_color=PANEL_BACKGROUND,
-            button_color=ACCENT_COLOR,
-            button_hover_color=ACCENT_HOVER,
-            text_color=("#27332C", "#E6EEE9"),
+            fg_color=CARD_BACKGROUND,
+            button_color=CONTROL_BUTTON,
+            button_hover_color=CONTROL_HOVER,
+            text_color=TEXT_COLOR,
         )
 
         self.modified_filter_menu.grid(
@@ -2551,10 +2676,10 @@ class AniccoliApp(ctk.CTk):
             command=lambda _value: self._on_folder_filter_changed(),
             height=36,
             corner_radius=9,
-            fg_color=PANEL_BACKGROUND,
-            button_color=ACCENT_COLOR,
-            button_hover_color=ACCENT_HOVER,
-            text_color=("#27332C", "#E6EEE9"),
+            fg_color=CARD_BACKGROUND,
+            button_color=CONTROL_BUTTON,
+            button_hover_color=CONTROL_HOVER,
+            text_color=TEXT_COLOR,
         )
 
         self.folder_filter_menu.grid(
@@ -2573,10 +2698,10 @@ class AniccoliApp(ctk.CTk):
             height=36,
             state="disabled",
             corner_radius=9,
-            fg_color=PANEL_BACKGROUND,
-            button_color=ACCENT_COLOR,
-            button_hover_color=ACCENT_HOVER,
-            text_color=("#27332C", "#E6EEE9"),
+            fg_color=CARD_BACKGROUND,
+            button_color=CONTROL_BUTTON,
+            button_hover_color=CONTROL_HOVER,
+            text_color=TEXT_COLOR,
         )
 
         self.folder_match_mode_menu.grid(
@@ -2594,10 +2719,10 @@ class AniccoliApp(ctk.CTk):
             command=lambda _value: self._apply_filters(),
             height=36,
             corner_radius=9,
-            fg_color=PANEL_BACKGROUND,
-            button_color=ACCENT_COLOR,
-            button_hover_color=ACCENT_HOVER,
-            text_color=("#27332C", "#E6EEE9"),
+            fg_color=CARD_BACKGROUND,
+            button_color=CONTROL_BUTTON,
+            button_hover_color=CONTROL_HOVER,
+            text_color=TEXT_COLOR,
         )
 
         self.sort_field_menu.grid(
@@ -2615,10 +2740,10 @@ class AniccoliApp(ctk.CTk):
             command=lambda _value: self._apply_filters(),
             height=36,
             corner_radius=9,
-            fg_color=PANEL_BACKGROUND,
-            button_color=ACCENT_COLOR,
-            button_hover_color=ACCENT_HOVER,
-            text_color=("#27332C", "#E6EEE9"),
+            fg_color=CARD_BACKGROUND,
+            button_color=CONTROL_BUTTON,
+            button_hover_color=CONTROL_HOVER,
+            text_color=TEXT_COLOR,
         )
 
         self.sort_direction_menu.grid(
@@ -2639,7 +2764,7 @@ class AniccoliApp(ctk.CTk):
             hover_color=ACCENT_SOFT,
             border_width=1,
             border_color=BORDER_COLOR,
-            text_color=("#27332C", "#E6EEE9"),
+            text_color=TEXT_COLOR,
         )
 
         reset_sort_button.grid(
@@ -2652,8 +2777,7 @@ class AniccoliApp(ctk.CTk):
 
         selection_bar = ctk.CTkFrame(
             master=filter_frame,
-            corner_radius=9,
-            fg_color=PANEL_BACKGROUND,
+            fg_color="transparent",
         )
 
         selection_bar.grid(
@@ -2700,7 +2824,7 @@ class AniccoliApp(ctk.CTk):
             hover_color=ACCENT_SOFT,
             border_width=1,
             border_color=BORDER_COLOR,
-            text_color=("#27332C", "#E6EEE9"),
+            text_color=TEXT_COLOR,
         )
 
         select_visible_button.grid(
@@ -2721,7 +2845,7 @@ class AniccoliApp(ctk.CTk):
             hover_color=ACCENT_SOFT,
             border_width=1,
             border_color=BORDER_COLOR,
-            text_color=("#27332C", "#E6EEE9"),
+            text_color=TEXT_COLOR,
         )
 
         invert_visible_button.grid(
@@ -2742,7 +2866,7 @@ class AniccoliApp(ctk.CTk):
             hover_color=DANGER_SOFT,
             border_width=1,
             border_color=BORDER_COLOR,
-            text_color=("#7A3030", "#F0B8B8"),
+            text_color=DANGER_TEXT,
         )
 
         clear_selection_button.grid(
@@ -2763,11 +2887,11 @@ class AniccoliApp(ctk.CTk):
             master=parent,
             text=text,
             font=ctk.CTkFont(
-                size=10,
-                weight="bold",
+                size=11,
             ),
             text_color=MUTED_TEXT,
             anchor="w",
+            height=20,
         )
 
         label.grid(
@@ -3811,6 +3935,8 @@ class AniccoliApp(ctk.CTk):
             text="0",
         )
 
+        self._refresh_category_bar()
+
         self.filter_count_label.configure(
             text=self._t("showing_files", visible=0, total=0),
         )
@@ -3899,6 +4025,7 @@ class AniccoliApp(ctk.CTk):
             ),
         )
 
+        self._refresh_category_bar()
         self._clear_result_rows()
 
         if not self.scanned_assets:
@@ -3961,17 +4088,32 @@ class AniccoliApp(ctk.CTk):
 
         row_frame = ctk.CTkFrame(
             master=self.results_scroll_frame,
-            corner_radius=10,
+            corner_radius=6,
             fg_color=row_color,
-            border_width=1,
-            border_color=BORDER_COLOR,
         )
 
         row_frame.grid(
             row=row_number,
             column=0,
             sticky="ew",
-            pady=(0, 7),
+            pady=(0, 2),
+        )
+
+        group_color = CATEGORY_GROUP_COLORS[
+            _category_group(asset.category)
+        ]
+
+        category_stripe = ctk.CTkFrame(
+            master=row_frame,
+            width=4,
+            corner_radius=2,
+            fg_color=group_color,
+        )
+
+        category_stripe.place(
+            x=3,
+            rely=0.2,
+            relheight=0.6,
         )
 
         row_frame.grid_columnconfigure(0, weight=0)
@@ -4004,8 +4146,8 @@ class AniccoliApp(ctk.CTk):
             row=0,
             column=0,
             rowspan=2,
-            padx=(12, 4),
-            pady=12,
+            padx=(14, 4),
+            pady=8,
         )
 
         parent_path = asset.relative_path.parent
@@ -4023,6 +4165,7 @@ class AniccoliApp(ctk.CTk):
                 weight="bold",
             ),
             anchor="w",
+            height=18,
         )
 
         file_name_label.grid(
@@ -4030,17 +4173,19 @@ class AniccoliApp(ctk.CTk):
             column=1,
             sticky="ew",
             padx=12,
-            pady=(10, 1),
+            pady=(8, 0),
         )
 
         path_label = ctk.CTkLabel(
             master=row_frame,
             text=parent_text,
             font=ctk.CTkFont(
-                size=10,
+                family=PATH_FONT_FAMILY,
+                size=11,
             ),
             text_color=MUTED_TEXT,
             anchor="w",
+            height=16,
         )
 
         path_label.grid(
@@ -4048,30 +4193,27 @@ class AniccoliApp(ctk.CTk):
             column=1,
             sticky="ew",
             padx=12,
-            pady=(0, 10),
+            pady=(0, 8),
         )
 
         category_label = ctk.CTkLabel(
             master=row_frame,
             text=str(asset.category),
             font=ctk.CTkFont(
-                size=11,
+                size=12,
                 weight="bold",
             ),
-            fg_color=ACCENT_SOFT,
-            text_color=ACCENT_COLOR,
-            corner_radius=10,
+            text_color=group_color,
+            anchor="w",
         )
 
         category_label.grid(
             row=0,
             column=2,
             rowspan=2,
-            sticky="w",
+            sticky="ew",
             padx=12,
-            pady=12,
-            ipadx=8,
-            ipady=3,
+            pady=8,
         )
 
         size_label = ctk.CTkLabel(
@@ -4079,7 +4221,6 @@ class AniccoliApp(ctk.CTk):
             text=asset.size_text,
             font=ctk.CTkFont(
                 size=12,
-                weight="bold",
             ),
             anchor="w",
         )
@@ -4090,7 +4231,7 @@ class AniccoliApp(ctk.CTk):
             rowspan=2,
             sticky="ew",
             padx=12,
-            pady=12,
+            pady=8,
         )
 
         planned_destination = build_destination_folder(
@@ -4102,6 +4243,7 @@ class AniccoliApp(ctk.CTk):
             master=row_frame,
             text=str(planned_destination),
             font=ctk.CTkFont(
+                family=PATH_FONT_FAMILY,
                 size=11,
             ),
             text_color=MUTED_TEXT,
@@ -4116,7 +4258,7 @@ class AniccoliApp(ctk.CTk):
             rowspan=2,
             sticky="ew",
             padx=12,
-            pady=10,
+            pady=8,
         )
 
         reveal_button = ctk.CTkButton(
@@ -4125,17 +4267,16 @@ class AniccoliApp(ctk.CTk):
             command=lambda selected_asset=asset: (
                 self._reveal_asset_in_file_manager(selected_asset)
             ),
-            width=78,
-            height=31,
-            corner_radius=8,
+            width=64,
+            height=26,
+            corner_radius=6,
             fg_color="transparent",
             hover_color=ACCENT_SOFT,
             border_width=1,
             border_color=BORDER_COLOR,
-            text_color=("#27332C", "#E6EEE9"),
+            text_color=TEXT_COLOR,
             font=ctk.CTkFont(
                 size=11,
-                weight="bold",
             ),
         )
 
@@ -4144,7 +4285,7 @@ class AniccoliApp(ctk.CTk):
             column=5,
             rowspan=2,
             padx=(6, 12),
-            pady=12,
+            pady=8,
         )
 
     def _reveal_asset_in_file_manager(
@@ -5155,7 +5296,7 @@ def create_app() -> AniccoliApp:
     )
 
     ctk.set_default_color_theme(
-        "green"
+        str(Path(__file__).with_name("theme.json"))
     )
 
     return AniccoliApp()
