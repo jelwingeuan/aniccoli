@@ -8,15 +8,16 @@ from tkinter import messagebox
 
 import customtkinter as ctk
 
-from aniccoli.duplicate_cleanup import (
-    NoDuplicateCleanupHistoryError,
-    build_duplicate_cleanup_plan,
-    execute_duplicate_cleanup,
-    find_latest_restorable_duplicate_cleanup,
-    restore_duplicate_cleanup,
-)
+from aniccoli.duplicate_cleanup import build_duplicate_cleanup_plan
 from aniccoli.duplicates import DuplicateGroup
 from aniccoli.file_actions import reveal_in_file_manager
+from aniccoli.moves import (
+    JournalKind,
+    NothingToReverseError,
+    apply_moves,
+    latest_journal,
+    reverse_latest,
+)
 from aniccoli.scanner import (
     AssetFile,
     format_file_size,
@@ -122,11 +123,15 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
         duplicate_groups: Iterable[DuplicateGroup],
         project_folder: str | Path | None = None,
         on_project_changed: ProjectChangedCallback | None = None,
+        *,
+        translate: Callable[..., str],
     ) -> None:
         """Create the duplicate-results window."""
         super().__init__(
             master
         )
+
+        self._t = translate
 
         self.duplicate_groups = tuple(
             duplicate_groups
@@ -160,7 +165,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
         ] = {}
 
         self.title(
-            "Aniccoli Duplicate Results"
+            self._t("dup_window_title")
         )
 
         self.geometry(
@@ -252,7 +257,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
 
         title_label = ctk.CTkLabel(
             master=header_frame,
-            text="Duplicate Results",
+            text=self._t("dup_heading"),
             font=ctk.CTkFont(
                 size=28,
                 weight="bold",
@@ -269,8 +274,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
         description_label = ctk.CTkLabel(
             master=header_frame,
             text=(
-                "Select only the copies you want to quarantine. "
-                "Aniccoli never permanently deletes them."
+                self._t("dup_description")
             ),
             font=ctk.CTkFont(
                 size=13,
@@ -309,7 +313,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
 
         summary_values = (
             (
-                "Duplicate groups",
+                self._t("dup_groups"),
                 str(
                     len(
                         self.duplicate_groups
@@ -317,20 +321,20 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
                 ),
             ),
             (
-                "Extra copies",
+                self._t("dup_extra_copies"),
                 str(
                     self.duplicate_copy_count
                 ),
             ),
             (
-                "Maximum reclaimable",
+                self._t("dup_reclaimable"),
                 format_file_size(
                     self.reclaimable_size_bytes
                 ),
             ),
             (
-                "Selected",
-                "0 files",
+                self._t("selected"),
+                self._t("dup_files_count", count=0),
             ),
         )
 
@@ -377,7 +381,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
                 pady=(0, 12),
             )
 
-            if heading == "Selected":
+            if heading == self._t("selected"):
                 self.selected_summary_label = value_label
 
     def _create_results(self) -> None:
@@ -404,8 +408,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
             empty_label = ctk.CTkLabel(
                 master=self.results_scroll_frame,
                 text=(
-                    "No exact-content duplicates were found.\n"
-                    "You can still restore a previous cleanup below."
+                    self._t("dup_none")
                 ),
                 font=ctk.CTkFont(
                     size=15,
@@ -489,10 +492,13 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
         heading_label = ctk.CTkLabel(
             master=heading_frame,
             text=(
-                f"Group {group_number}  •  "
-                f"{len(assets)} identical files  •  "
-                f"{group_size_text} each  •  "
-                f"{_group_hash_text(group)}"
+                self._t(
+                    "dup_group_heading",
+                    number=group_number,
+                    count=len(assets),
+                    size=group_size_text,
+                    hash=_group_hash_text(group),
+                )
             ),
             font=ctk.CTkFont(
                 size=14,
@@ -509,7 +515,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
 
         select_extras_button = ctk.CTkButton(
             master=heading_frame,
-            text="Select Extras",
+            text=self._t("dup_select_extras"),
             command=lambda records=assets: (
                 self._select_group_extras(
                     records
@@ -527,7 +533,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
 
         clear_group_button = ctk.CTkButton(
             master=heading_frame,
-            text="Clear Group",
+            text=self._t("dup_clear_group"),
             command=lambda records=assets: (
                 self._clear_group_selection(
                     records
@@ -594,7 +600,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
 
         checkbox = ctk.CTkCheckBox(
             master=parent,
-            text="Quarantine",
+            text=self._t("dup_quarantine"),
             variable=selection_var,
             onvalue=True,
             offvalue=False,
@@ -612,8 +618,11 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
         details_label = ctk.CTkLabel(
             master=parent,
             text=(
-                f"{asset.relative_path}\n"
-                f"Modified {asset.modified_at:%Y-%m-%d %H:%M}"
+                self._t(
+                    "dup_modified",
+                    path=asset.relative_path,
+                    date=f"{asset.modified_at:%Y-%m-%d %H:%M}",
+                )
             ),
             font=ctk.CTkFont(
                 size=12,
@@ -648,7 +657,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
 
         reveal_button = ctk.CTkButton(
             master=parent,
-            text="Reveal",
+            text=self._t("reveal"),
             command=lambda selected_asset=asset: (
                 self._reveal_asset(
                     selected_asset
@@ -687,7 +696,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
 
         self.selection_status_label = ctk.CTkLabel(
             master=action_frame,
-            text="Select duplicate copies to quarantine.",
+            text=self._t("dup_select_prompt"),
             font=ctk.CTkFont(
                 size=12,
             ),
@@ -702,7 +711,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
 
         restore_button = ctk.CTkButton(
             master=action_frame,
-            text="Restore Last Cleanup",
+            text=self._t("dup_restore_last"),
             command=self._restore_last_cleanup,
             width=165,
             height=40,
@@ -721,7 +730,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
 
         close_button = ctk.CTkButton(
             master=action_frame,
-            text="Close",
+            text=self._t("close"),
             command=self.destroy,
             width=105,
             height=40,
@@ -735,7 +744,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
 
         self.cleanup_button = ctk.CTkButton(
             master=action_frame,
-            text="Quarantine Selected",
+            text=self._t("dup_quarantine_selected"),
             command=self._quarantine_selected,
             width=175,
             height=40,
@@ -785,17 +794,19 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
 
         self.selected_summary_label.configure(
             text=(
-                f"{selected_count} file"
-                f"{'' if selected_count == 1 else 's'}"
+                self._t("dup_files_count", count=selected_count)
             ),
         )
 
         self.selection_status_label.configure(
             text=(
-                f"{selected_count} selected  •  "
-                f"{selected_size} will be quarantined"
+                self._t(
+                    "dup_selection_summary",
+                    count=selected_count,
+                    size=selected_size,
+                )
                 if selected_count
-                else "Select duplicate copies to quarantine."
+                else self._t("dup_select_prompt")
             ),
         )
 
@@ -887,7 +898,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
             OSError,
         ) as error:
             messagebox.showerror(
-                title="Cannot Reveal Duplicate",
+                title=self._t("dup_cannot_reveal_title"),
                 message=str(
                     error
                 ),
@@ -906,10 +917,9 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
 
         if not self._selection_keeps_one_copy_per_group():
             messagebox.showerror(
-                title="Keep One Copy",
+                title=self._t("dup_keep_one_title"),
                 message=(
-                    "At least one file must remain in every duplicate "
-                    "group. Clear one selection in the affected group."
+                    self._t("dup_keep_one_message")
                 ),
                 parent=self,
             )
@@ -920,12 +930,9 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
         )
 
         confirmed = messagebox.askyesno(
-            title="Confirm Duplicate Cleanup",
+            title=self._t("dup_confirm_title"),
             message=(
-                f"Quarantine {selected_count} selected duplicate "
-                f"cop{'y' if selected_count == 1 else 'ies'}?\n\n"
-                "The files will not be permanently deleted. "
-                "They can be restored using Restore Last Cleanup."
+                self._t("dup_confirm_message", count=selected_count)
             ),
             parent=self,
         )
@@ -935,19 +942,19 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
 
         self.cleanup_button.configure(
             state="disabled",
-            text="Quarantining...",
+            text=self._t("dup_quarantining"),
         )
 
         self.update_idletasks()
 
         try:
-            plan = build_duplicate_cleanup_plan(
-                project_folder=self.project_folder,
-                assets_to_quarantine=selected_records,
-            )
-
-            result = execute_duplicate_cleanup(
-                plan
+            result = apply_moves(
+                self.project_folder,
+                build_duplicate_cleanup_plan(
+                    project_folder=self.project_folder,
+                    assets_to_quarantine=selected_records,
+                ),
+                JournalKind.QUARANTINE,
             )
         except (
             FileNotFoundError,
@@ -957,7 +964,7 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
             ValueError,
         ) as error:
             messagebox.showerror(
-                title="Duplicate Cleanup Failed",
+                title=self._t("dup_cleanup_failed_title"),
                 message=str(
                     error
                 ),
@@ -966,44 +973,48 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
 
             self.cleanup_button.configure(
                 state="normal",
-                text="Quarantine Selected",
+                text=self._t("dup_quarantine_selected"),
             )
             return
 
-        if result.failed_count:
+        quarantined_count = len(
+            result.done
+        )
+
+        if result.failed:
             messagebox.showwarning(
-                title="Duplicate Cleanup Partially Completed",
+                title=self._t("dup_cleanup_partial_title"),
                 message=(
-                    f"Quarantined: {result.quarantined_count}\n"
-                    f"Failed: {result.failed_count}\n\n"
-                    "No failed item was deleted or overwritten."
+                    self._t(
+                        "dup_cleanup_partial_message",
+                        done=quarantined_count,
+                        failed=len(result.failed),
+                    )
                 ),
                 parent=self,
             )
         else:
             manifest_text = (
-                f"\n\nCleanup record:\n{result.manifest_path}"
-                if result.manifest_path is not None
+                "\n\n" + self._t("dup_cleanup_record", path=result.journal_path)
+                if result.journal_path is not None
                 else ""
             )
 
             messagebox.showinfo(
-                title="Duplicate Cleanup Complete",
+                title=self._t("dup_cleanup_done_title"),
                 message=(
-                    f"Safely quarantined "
-                    f"{result.quarantined_count} duplicate "
-                    f"cop{'y' if result.quarantined_count == 1 else 'ies'}."
-                    f"{manifest_text}"
+                    self._t("dup_cleanup_done_message", count=quarantined_count)
+                    + manifest_text
                 ),
                 parent=self,
             )
 
-        if result.quarantined_count:
+        if quarantined_count:
             self._finish_project_change()
         else:
             self.cleanup_button.configure(
                 state="normal",
-                text="Quarantine Selected",
+                text=self._t("dup_quarantine_selected"),
             )
 
     def _restore_last_cleanup(self) -> None:
@@ -1011,29 +1022,28 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
         if self.project_folder is None:
             return
 
-        manifest_path = (
-            find_latest_restorable_duplicate_cleanup(
-                self.project_folder
+        try:
+            manifest_path = latest_journal(
+                self.project_folder,
+                JournalKind.QUARANTINE,
             )
-        )
+        except OSError:
+            manifest_path = None
 
         if manifest_path is None:
             messagebox.showinfo(
-                title="Nothing to Restore",
+                title=self._t("dup_nothing_restore_title"),
                 message=(
-                    "There is no previous duplicate-cleanup operation "
-                    "available to restore."
+                    self._t("dup_nothing_restore_message")
                 ),
                 parent=self,
             )
             return
 
         confirmed = messagebox.askyesno(
-            title="Restore Duplicate Cleanup",
+            title=self._t("dup_restore_title"),
             message=(
-                "Restore the files from the latest duplicate cleanup?\n\n"
-                f"Cleanup record:\n{manifest_path}\n\n"
-                "Existing files will never be overwritten."
+                self._t("dup_restore_message", path=manifest_path)
             ),
             parent=self,
         )
@@ -1042,19 +1052,19 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
             return
 
         try:
-            result = restore_duplicate_cleanup(
-                project_folder=self.project_folder,
-                manifest_path=manifest_path,
+            result = reverse_latest(
+                self.project_folder,
+                JournalKind.QUARANTINE,
             )
         except (
-            NoDuplicateCleanupHistoryError,
+            NothingToReverseError,
             FileNotFoundError,
             PermissionError,
             OSError,
             ValueError,
         ) as error:
             messagebox.showerror(
-                title="Duplicate Restore Failed",
+                title=self._t("dup_restore_failed_title"),
                 message=str(
                     error
                 ),
@@ -1062,27 +1072,32 @@ class DuplicateResultsWindow(ctk.CTkToplevel):
             )
             return
 
-        if result.failed_count:
+        restored_count = len(
+            result.done
+        )
+
+        if result.failed:
             messagebox.showwarning(
-                title="Duplicate Restore Partially Completed",
+                title=self._t("dup_restore_partial_title"),
                 message=(
-                    f"Restored: {result.restored_count}\n"
-                    f"Failed: {result.failed_count}\n\n"
-                    "Existing files were not overwritten."
+                    self._t(
+                        "dup_restore_partial_message",
+                        done=restored_count,
+                        failed=len(result.failed),
+                    )
                 ),
                 parent=self,
             )
         else:
             messagebox.showinfo(
-                title="Duplicate Restore Complete",
+                title=self._t("dup_restore_done_title"),
                 message=(
-                    f"Restored {result.restored_count} file"
-                    f"{'' if result.restored_count == 1 else 's'}."
+                    self._t("dup_restore_done_message", count=restored_count)
                 ),
                 parent=self,
             )
 
-        if result.restored_count:
+        if restored_count:
             self._finish_project_change()
 
     def _finish_project_change(self) -> None:

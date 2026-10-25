@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "application": "Aniccoli",
+  "created_at": "2026-10-25T07:34:17.544873+08:00",
+  "project_folder": "/Users/example/project",
+  "summary": {
+    "planned": 4,
+    "moved": 4,
+    "failed": 0
+  },
+  "movements": [
+    {
+      "source": "dupes/rock.png",
+      "destination": "Textures/Other/rock.png",
+      "category": "Other Texture",
+      "renamed_for_conflict": false,
+      "status": "moved",
+      "error": null
+    },
+    {
+      "source": "hero.fbx",
+      "destination": "3D_Models/FBX/hero.fbx",
+      "category": "FBX Model",
+      "renamed_for_conflict": false,
+      "status": "moved",
+      "error": null
+    },
+    {
+      "source": "maps/hero_normal.png",
+      "destination": "Textures/Normal/hero_normal.png",
+      "category": "Normal Texture",
+      "renamed_for_conflict": false,
+      "status": "moved",
+      "error": null
+    },
+    {
+      "source": "notes.txt",
+      "destination": "Documents/notes.txt",
+      "category": "Document",
+      "renamed_for_conflict": false,
+      "status": "moved",
+      "error": null
+    }
+  ]
+}
