@@ -272,22 +272,6 @@ def collect_available_folders(
     )
 
 
-def folder_display_name(
-    folder: Path,
-) -> str:
-    """Return a readable name for a project-relative folder."""
-    normalized_folder = _normalize_relative_folder(
-        folder
-    )
-
-    if normalized_folder == Path("."):
-        return "Project root"
-
-    return str(
-        normalized_folder
-    )
-
-
 def _matches(
     asset: AssetFile,
     query: AssetQuery,

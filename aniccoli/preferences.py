@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from aniccoli.i18n import LANGUAGES
 from aniccoli.organization_options import (
     DateGrouping,
     DateSource,
@@ -25,6 +26,9 @@ DEFAULT_PREFERENCES_PATH = (
     / "preferences.json"
 )
 
+# Older versions saved only the interface language, in its own file.
+LEGACY_LANGUAGE_FILE_NAME = "ui_language.txt"
+
 
 @dataclass(frozen=True)
 class AppPreferences:
@@ -34,6 +38,7 @@ class AppPreferences:
     date_grouping: DateGrouping = DateGrouping.NONE
     date_source: DateSource = DateSource.MODIFIED
     last_project_folder: str | None = None
+    language: str = "en"
 
     @property
     def last_project_path(self) -> Path | None:
@@ -199,6 +204,30 @@ def _read_last_project_folder(
     return cleaned_value
 
 
+def _read_language(
+    data: dict[str, Any],
+    legacy_language_path: Path,
+) -> str:
+    """Read the interface language, falling back to the legacy file."""
+    value = data.get(
+        "language"
+    )
+
+    if value is None:
+        try:
+            value = legacy_language_path.read_text(
+                encoding="utf-8"
+            ).strip()
+        except OSError:
+            value = None
+
+    return (
+        value
+        if value in LANGUAGES
+        else "en"
+    )
+
+
 def load_preferences(
     preferences_path: str | Path = DEFAULT_PREFERENCES_PATH,
 ) -> AppPreferences:
@@ -212,32 +241,29 @@ def load_preferences(
         preferences_path
     ).expanduser().resolve()
 
-    if not input_path.exists():
-        return AppPreferences()
+    data: object = {}
 
-    if not input_path.is_file():
-        return AppPreferences()
-
-    try:
-        with input_path.open(
-            mode="r",
-            encoding="utf-8",
-        ) as preferences_file:
-            data = json.load(
-                preferences_file
-            )
-    except (
-        json.JSONDecodeError,
-        PermissionError,
-        OSError,
-    ):
-        return AppPreferences()
+    if input_path.is_file():
+        try:
+            with input_path.open(
+                mode="r",
+                encoding="utf-8",
+            ) as preferences_file:
+                data = json.load(
+                    preferences_file
+                )
+        except (
+            json.JSONDecodeError,
+            PermissionError,
+            OSError,
+        ):
+            data = {}
 
     if not isinstance(
         data,
         dict,
     ):
-        return AppPreferences()
+        data = {}
 
     return AppPreferences(
         recursive_scan=_read_boolean(
@@ -256,6 +282,10 @@ def load_preferences(
                 data
             )
         ),
+        language=_read_language(
+            data,
+            input_path.parent / LEGACY_LANGUAGE_FILE_NAME,
+        ),
     )
 
 
@@ -267,6 +297,7 @@ def update_preferences(
     date_source: DateSource | None = None,
     last_project_folder: str | Path | None = None,
     clear_last_project_folder: bool = False,
+    language: str | None = None,
 ) -> AppPreferences:
     """Create updated preferences without changing the original object."""
     if clear_last_project_folder:
@@ -300,5 +331,10 @@ def update_preferences(
         ),
         last_project_folder=(
             resolved_last_project_folder
+        ),
+        language=(
+            language
+            if language is not None
+            else current_preferences.language
         ),
     )

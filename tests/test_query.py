@@ -12,7 +12,6 @@ from aniccoli.filters import (
     SortDirection,
     SortField,
     collect_available_folders,
-    folder_display_name,
     query_assets,
 )
 from aniccoli.scanner import AssetFile
@@ -87,7 +86,6 @@ def test_folder_modes() -> None:
     assert collect_available_folders(ASSETS) == (
         Path("."), Path("Audio"), Path("characters"), Path("characters/villain"),
     )
-    assert folder_display_name(Path(".")) == "Project root"
 
 
 @pytest.mark.parametrize(

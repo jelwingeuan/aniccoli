@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 
 import customtkinter as ctk
@@ -20,13 +21,15 @@ class AssetStatisticsWindow(ctk.CTkToplevel):
         self,
         master: ctk.CTk,
         statistics: AssetStatistics,
+        translate: Callable[..., str],
     ) -> None:
         """Create the project-statistics window."""
         super().__init__(master)
 
         self.statistics = statistics
+        self._t = translate
 
-        self.title("Aniccoli Project Statistics")
+        self.title(self._t("stats_window_title"))
         self.geometry("1080x740")
         self.minsize(900, 620)
         self.transient(master)
@@ -69,7 +72,7 @@ class AssetStatisticsWindow(ctk.CTkToplevel):
 
         title_label = ctk.CTkLabel(
             master=header_frame,
-            text="Project Statistics",
+            text=self._t("project_statistics"),
             font=ctk.CTkFont(
                 size=28,
                 weight="bold",
@@ -85,9 +88,7 @@ class AssetStatisticsWindow(ctk.CTkToplevel):
 
         description_label = ctk.CTkLabel(
             master=header_frame,
-            text=(
-                "A read-only overview of every asset in the latest scan."
-            ),
+            text=self._t("stats_description"),
             font=ctk.CTkFont(
                 size=13,
             ),
@@ -125,23 +126,23 @@ class AssetStatisticsWindow(ctk.CTkToplevel):
 
         summary_values = (
             (
-                "Assets",
+                self._t("stats_assets"),
                 str(self.statistics.total_assets),
             ),
             (
-                "Combined size",
+                self._t("combined_size"),
                 self.statistics.total_size_text,
             ),
             (
-                "Average size",
+                self._t("stats_average_size"),
                 self.statistics.average_size_text,
             ),
             (
-                "Categories",
+                self._t("categories"),
                 str(self.statistics.category_count),
             ),
             (
-                "Source folders",
+                self._t("stats_source_folders"),
                 str(self.statistics.folder_count),
             ),
         )
@@ -221,12 +222,18 @@ class AssetStatisticsWindow(ctk.CTkToplevel):
             pady=(0, 15),
         )
 
+        categories_tab = self._t("categories")
+        extensions_tab = self._t("stats_extensions")
+        folders_tab = self._t("stats_folders")
+        largest_tab = self._t("stats_largest")
+        recent_tab = self._t("stats_recent")
+
         tab_names = (
-            "Categories",
-            "Extensions",
-            "Folders",
-            "Largest Assets",
-            "Recently Modified",
+            categories_tab,
+            extensions_tab,
+            folders_tab,
+            largest_tab,
+            recent_tab,
         )
 
         for tab_name in tab_names:
@@ -249,33 +256,33 @@ class AssetStatisticsWindow(ctk.CTkToplevel):
             )
 
         self._populate_group_tab(
-            parent=tab_view.tab("Categories"),
+            parent=tab_view.tab(categories_tab),
             groups=self.statistics.category_groups,
-            empty_message="No asset categories are available.",
+            empty_message=self._t("stats_empty_categories"),
         )
 
         self._populate_group_tab(
-            parent=tab_view.tab("Extensions"),
+            parent=tab_view.tab(extensions_tab),
             groups=self.statistics.extension_groups,
-            empty_message="No file extensions are available.",
+            empty_message=self._t("stats_empty_extensions"),
         )
 
         self._populate_group_tab(
-            parent=tab_view.tab("Folders"),
+            parent=tab_view.tab(folders_tab),
             groups=self.statistics.folder_groups,
-            empty_message="No source folders are available.",
+            empty_message=self._t("stats_empty_folders"),
         )
 
         self._populate_asset_tab(
-            parent=tab_view.tab("Largest Assets"),
+            parent=tab_view.tab(largest_tab),
             assets=self.statistics.largest_assets,
-            empty_message="No assets are available.",
+            empty_message=self._t("stats_empty_assets"),
         )
 
         self._populate_asset_tab(
-            parent=tab_view.tab("Recently Modified"),
+            parent=tab_view.tab(recent_tab),
             assets=self.statistics.recently_modified_assets,
-            empty_message="No assets are available.",
+            empty_message=self._t("stats_empty_assets"),
         )
 
     def _populate_group_tab(
@@ -350,9 +357,9 @@ class AssetStatisticsWindow(ctk.CTkToplevel):
 
             count_label = ctk.CTkLabel(
                 master=row_frame,
-                text=(
-                    f"{group.asset_count} asset"
-                    f"{'' if group.asset_count == 1 else 's'}"
+                text=self._t(
+                    "stats_asset_count",
+                    count=group.asset_count,
                 ),
                 font=ctk.CTkFont(
                     size=12,
@@ -550,7 +557,7 @@ class AssetStatisticsWindow(ctk.CTkToplevel):
         """Create the close button."""
         close_button = ctk.CTkButton(
             master=self,
-            text="Close",
+            text=self._t("close"),
             command=self.destroy,
             width=120,
             height=40,

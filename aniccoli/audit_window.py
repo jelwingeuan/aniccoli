@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 
 import customtkinter as ctk
 
@@ -11,6 +11,7 @@ from aniccoli.audit import (
     AssetAuditReport,
     AuditSeverity,
 )
+from aniccoli.i18n import choice_key
 
 
 class AssetAuditWindow(ctk.CTkToplevel):
@@ -20,13 +21,15 @@ class AssetAuditWindow(ctk.CTkToplevel):
         self,
         master: ctk.CTk,
         report: AssetAuditReport,
+        translate: Callable[..., str],
     ) -> None:
         """Create the asset health-audit window."""
         super().__init__(master)
 
         self.report = report
+        self._t = translate
 
-        self.title("Aniccoli Asset Health")
+        self.title(self._t("audit_window_title"))
         self.geometry("1120x760")
         self.minsize(920, 620)
         self.transient(master)
@@ -69,7 +72,7 @@ class AssetAuditWindow(ctk.CTkToplevel):
 
         title_label = ctk.CTkLabel(
             master=header_frame,
-            text="Asset Health",
+            text=self._t("asset_health"),
             font=ctk.CTkFont(
                 size=28,
                 weight="bold",
@@ -85,10 +88,7 @@ class AssetAuditWindow(ctk.CTkToplevel):
 
         description_label = ctk.CTkLabel(
             master=header_frame,
-            text=(
-                "A read-only audit for empty files, large files, "
-                "duplicate filenames, missing extensions, and stale assets."
-            ),
+            text=self._t("audit_description"),
             font=ctk.CTkFont(
                 size=13,
             ),
@@ -126,23 +126,23 @@ class AssetAuditWindow(ctk.CTkToplevel):
 
         summary_values = (
             (
-                "Assets scanned",
+                self._t("audit_assets_scanned"),
                 str(self.report.scanned_asset_count),
             ),
             (
-                "Healthy assets",
+                self._t("audit_healthy"),
                 str(self.report.healthy_asset_count),
             ),
             (
-                "Errors",
+                self._t("audit_errors"),
                 str(self.report.error_count),
             ),
             (
-                "Warnings",
+                self._t("audit_warnings"),
                 str(self.report.warning_count),
             ),
             (
-                "Total issues",
+                self._t("audit_total"),
                 str(self.report.issue_count),
             ),
         )
@@ -222,11 +222,16 @@ class AssetAuditWindow(ctk.CTkToplevel):
             pady=(0, 15),
         )
 
+        all_tab = self._t("audit_all")
+        errors_tab = self._t("audit_errors")
+        warnings_tab = self._t("audit_warnings")
+        info_tab = self._t("audit_info")
+
         tab_names = (
-            "All Issues",
-            "Errors",
-            "Warnings",
-            "Info",
+            all_tab,
+            errors_tab,
+            warnings_tab,
+            info_tab,
         )
 
         for tab_name in tab_names:
@@ -249,36 +254,33 @@ class AssetAuditWindow(ctk.CTkToplevel):
             )
 
         self._populate_issue_tab(
-            parent=tab_view.tab("All Issues"),
+            parent=tab_view.tab(all_tab),
             issues=self.report.issues,
-            empty_message=(
-                "No health issues were found. "
-                "The scanned project looks healthy."
-            ),
+            empty_message=self._t("audit_empty_all"),
         )
 
         self._populate_issue_tab(
-            parent=tab_view.tab("Errors"),
+            parent=tab_view.tab(errors_tab),
             issues=self._issues_for_severity(
                 AuditSeverity.ERROR
             ),
-            empty_message="No error-level issues were found.",
+            empty_message=self._t("audit_empty_errors"),
         )
 
         self._populate_issue_tab(
-            parent=tab_view.tab("Warnings"),
+            parent=tab_view.tab(warnings_tab),
             issues=self._issues_for_severity(
                 AuditSeverity.WARNING
             ),
-            empty_message="No warning-level issues were found.",
+            empty_message=self._t("audit_empty_warnings"),
         )
 
         self._populate_issue_tab(
-            parent=tab_view.tab("Info"),
+            parent=tab_view.tab(info_tab),
             issues=self._issues_for_severity(
                 AuditSeverity.INFO
             ),
-            empty_message="No informational issues were found.",
+            empty_message=self._t("audit_empty_info"),
         )
 
     def _issues_for_severity(
@@ -374,8 +376,8 @@ class AssetAuditWindow(ctk.CTkToplevel):
 
         severity_label = ctk.CTkLabel(
             master=row_frame,
-            text=str(
-                issue.severity
+            text=self._t(
+                choice_key(issue.severity)
             ),
             font=ctk.CTkFont(
                 size=12,
@@ -395,7 +397,7 @@ class AssetAuditWindow(ctk.CTkToplevel):
         issue_heading = ctk.CTkLabel(
             master=row_frame,
             text=(
-                f"{issue.issue_type}  •  "
+                f"{self._t(choice_key(issue.issue_type))}  •  "
                 f"{issue.relative_path}"
             ),
             font=ctk.CTkFont(
@@ -434,10 +436,12 @@ class AssetAuditWindow(ctk.CTkToplevel):
         )
 
         related_text = (
-            "Related: "
-            + ", ".join(
-                str(path)
-                for path in issue.related_paths
+            self._t(
+                "audit_related",
+                paths=", ".join(
+                    str(path)
+                    for path in issue.related_paths
+                ),
             )
             if issue.related_paths
             else ""
@@ -484,7 +488,7 @@ class AssetAuditWindow(ctk.CTkToplevel):
 
         close_button = ctk.CTkButton(
             master=action_frame,
-            text="Close",
+            text=self._t("close"),
             command=self.destroy,
             width=130,
             height=40,
