@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 import sys
 from tkinter import filedialog, messagebox
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 import customtkinter as ctk
 
@@ -18,12 +18,9 @@ from aniccoli.audit_window import AssetAuditWindow
 from aniccoli.categories import AssetCategory
 from aniccoli.duplicate_window import DuplicateResultsWindow
 from aniccoli.duplicates import (
-    DuplicateGroup,
     count_duplicate_copies,
-    find_duplicate_groups,
 )
 from aniccoli.file_actions import reveal_in_file_manager
-from aniccoli.i18n import LANGUAGES, choice_key, translate
 from aniccoli.filters import (
     AssetQuery,
     FolderMatchMode,
@@ -32,14 +29,10 @@ from aniccoli.filters import (
     collect_available_categories,
     collect_available_extensions,
     collect_available_folders,
-    query_assets,
 )
+from aniccoli.i18n import LANGUAGES, choice_key, translate
 from aniccoli.moves import (
-    JournalKind,
     NothingToReverseError,
-    apply_moves,
-    latest_journal,
-    reverse_latest,
 )
 from aniccoli.organization_options import (
     DateGrouping,
@@ -49,7 +42,6 @@ from aniccoli.organization_options import (
 )
 from aniccoli.organizer import (
     PlannedMove,
-    build_organization_plan,
     count_conflict_renames,
 )
 from aniccoli.preferences import (
@@ -60,24 +52,16 @@ from aniccoli.preferences import (
 )
 from aniccoli.reports import (
     ReportFormat,
-    export_asset_report,
 )
 from aniccoli.scanner import (
     AssetFile,
     calculate_total_size,
     format_file_size,
-    scan_folder,
     summarize_assets,
-)
-from aniccoli.selection import (
-    AssetSelection,
-    clear_asset_selection,
-    select_all_assets,
-    selected_assets,
-    summarize_selection,
 )
 from aniccoli.statistics import build_asset_statistics
 from aniccoli.statistics_window import AssetStatisticsWindow
+from aniccoli.workspace import Workspace, WorkspaceError
 
 
 _OriginalCTkScrollableFrame = ctk.CTkScrollableFrame
@@ -502,7 +486,7 @@ class AniccoliApp(ctk.CTk):
 
         saved_project_path = self.preferences.last_project_path
 
-        self.selected_folder: Optional[Path] = (
+        self.workspace = Workspace(
             saved_project_path.resolve()
             if (
                 saved_project_path is not None
@@ -512,13 +496,8 @@ class AniccoliApp(ctk.CTk):
             else None
         )
 
-        self.scanned_assets: list[AssetFile] = []
         self.filtered_assets: list[AssetFile] = []
         self._search_job: str | None = None
-        self.organization_plan: list[PlannedMove] = []
-        self.duplicate_groups: list[DuplicateGroup] = []
-
-        self.asset_selection = AssetSelection()
 
         self.available_categories: tuple[
             AssetCategory,
@@ -686,10 +665,10 @@ class AniccoliApp(ctk.CTk):
             self._label(SortDirection.ASCENDING),
         )
 
-        if self.selected_folder is not None:
+        if self.workspace.project is not None:
             self.selected_folder_label.configure(
                 text=str(
-                    self.selected_folder
+                    self.workspace.project
                 ),
             )
             self.scan_button.configure(
@@ -707,7 +686,7 @@ class AniccoliApp(ctk.CTk):
 
         self._refresh_filter_options()
 
-        if self.scanned_assets:
+        if self.workspace.assets:
             self._display_assets()
             self.duplicate_button.configure(
                 state="normal",
@@ -723,10 +702,10 @@ class AniccoliApp(ctk.CTk):
             self._reset_scan_results()
             self._clear_result_rows()
 
-            if self.selected_folder is not None:
+            if self.workspace.project is not None:
                 self.selected_folder_label.configure(
                     text=str(
-                        self.selected_folder
+                        self.workspace.project
                     ),
                 )
                 self.scan_button.configure(
@@ -820,13 +799,13 @@ class AniccoliApp(ctk.CTk):
             weight=1,
         )
 
-        self.workspace = ctk.CTkFrame(
+        self.workspace_frame = ctk.CTkFrame(
             master=self.main_container,
             corner_radius=0,
             fg_color="transparent",
         )
 
-        self.workspace.grid(
+        self.workspace_frame.grid(
             row=0,
             column=1,
             sticky="nsew",
@@ -834,12 +813,12 @@ class AniccoliApp(ctk.CTk):
             pady=24,
         )
 
-        self.workspace.grid_columnconfigure(
+        self.workspace_frame.grid_columnconfigure(
             0,
             weight=1,
         )
 
-        self.workspace.grid_rowconfigure(
+        self.workspace_frame.grid_rowconfigure(
             2,
             weight=1,
         )
@@ -936,7 +915,7 @@ class AniccoliApp(ctk.CTk):
         )
 
         workspace_header = ctk.CTkFrame(
-            master=self.workspace,
+            master=self.workspace_frame,
             fg_color="transparent",
         )
 
@@ -1584,7 +1563,7 @@ class AniccoliApp(ctk.CTk):
     def _create_summary_section(self) -> None:
         """Create the scan totals and the category composition bar."""
         summary_frame = ctk.CTkFrame(
-            master=self.workspace,
+            master=self.workspace_frame,
             fg_color="transparent",
         )
 
@@ -1719,7 +1698,7 @@ class AniccoliApp(ctk.CTk):
 
         group_counts = Counter(
             _category_group(asset.category)
-            for asset in self.scanned_assets
+            for asset in self.workspace.assets
         )
 
         # An empty scan still draws one grey track so the layout never jumps.
@@ -1795,7 +1774,7 @@ class AniccoliApp(ctk.CTk):
     def _create_results_section(self) -> None:
         """Create filters and the scrollable results section."""
         results_card = ctk.CTkFrame(
-            master=self.workspace,
+            master=self.workspace_frame,
             corner_radius=16,
             fg_color=PANEL_BACKGROUND,
             border_width=1,
@@ -2433,7 +2412,7 @@ class AniccoliApp(ctk.CTk):
         _event: object | None = None,
     ) -> str:
         """Scan the selected folder from a keyboard shortcut."""
-        if self.selected_folder is not None:
+        if self.workspace.project is not None:
             self._scan_selected_folder()
 
         return "break"
@@ -2689,9 +2668,9 @@ class AniccoliApp(ctk.CTk):
                 recursive_scan=self.recursive_scan_var.get(),
                 date_grouping=current_options.date_grouping,
                 date_source=current_options.date_source,
-                last_project_folder=self.selected_folder,
+                last_project_folder=self.workspace.project,
                 clear_last_project_folder=(
-                    self.selected_folder is None
+                    self.workspace.project is None
                 ),
                 language=self.language_code,
             )
@@ -2727,7 +2706,7 @@ class AniccoliApp(ctk.CTk):
             ),
         )
 
-        if self.selected_folder is None:
+        if self.workspace.project is None:
             if self.preferences.last_project_folder is not None:
                 self.preferences = update_preferences(
                     self.preferences,
@@ -2750,7 +2729,7 @@ class AniccoliApp(ctk.CTk):
 
         self.selected_folder_label.configure(
             text=str(
-                self.selected_folder
+                self.workspace.project
             ),
         )
 
@@ -2802,10 +2781,10 @@ class AniccoliApp(ctk.CTk):
             ),
         )
 
-        self.organization_plan = []
+        self.workspace.plan = ()
         self._save_current_preferences()
 
-        if self.scanned_assets:
+        if self.workspace.assets:
             self._display_assets()
 
             self.status_label.configure(
@@ -2825,13 +2804,15 @@ class AniccoliApp(ctk.CTk):
         if not selected_path:
             return
 
-        self.selected_folder = Path(
-            selected_path
-        ).expanduser().resolve()
+        self.workspace.open(
+            Path(
+                selected_path
+            ).expanduser().resolve()
+        )
 
         self.selected_folder_label.configure(
             text=str(
-                self.selected_folder
+                self.workspace.project
             ),
         )
 
@@ -2851,7 +2832,7 @@ class AniccoliApp(ctk.CTk):
 
     def _scan_selected_folder(self) -> None:
         """Scan the selected folder and display its assets."""
-        if self.selected_folder is None:
+        if self.workspace.project is None:
             self.status_label.configure(
                 text=self._t("choose_first"),
             )
@@ -2889,22 +2870,11 @@ class AniccoliApp(ctk.CTk):
         self.update_idletasks()
 
         try:
-            self.scanned_assets = scan_folder(
-                self.selected_folder,
+            self.workspace.scan(
                 recursive=self.recursive_scan_var.get(),
-                include_hidden=False,
             )
-        except (
-            FileNotFoundError,
-            NotADirectoryError,
-            PermissionError,
-            OSError,
-        ) as error:
-            self.scanned_assets = []
+        except OSError as error:
             self.filtered_assets = []
-            self.organization_plan = []
-            self.duplicate_groups = []
-            self.asset_selection = clear_asset_selection()
 
             self.status_label.configure(
                 text=self._t("scan_failed", error=error),
@@ -2913,40 +2883,14 @@ class AniccoliApp(ctk.CTk):
             self._refresh_filter_options()
             self._display_assets()
         else:
-            self.organization_plan = []
-            self.duplicate_groups = []
-            self.asset_selection = select_all_assets(
-                self.scanned_assets
-            )
-
-            self._refresh_filter_options()
-            self._reset_filter_controls()
-            self._display_assets()
-            self._update_selection_summary()
-
-            file_count = len(
-                self.scanned_assets
-            )
+            self._show_scan_results()
 
             self.status_label.configure(
                 text=self._t(
                     "scan_complete",
-                    count=file_count,
+                    count=len(self.workspace.assets),
                 ),
             )
-
-            if self.scanned_assets:
-                self.duplicate_button.configure(
-                    state="normal",
-                )
-
-                self.statistics_button.configure(
-                    state="normal",
-                )
-
-                self.audit_button.configure(
-                    state="normal",
-                )
         finally:
             self.scan_button.configure(
                 state="normal",
@@ -2955,23 +2899,45 @@ class AniccoliApp(ctk.CTk):
 
             self._refresh_undo_button()
 
+    def _show_scan_results(self) -> None:
+        """Redraw the filters, totals and rows from the latest scan."""
+        self._refresh_filter_options()
+        self._reset_filter_controls()
+        self._display_assets()
+        self._update_selection_summary()
+
+        scan_state = (
+            "normal"
+            if self.workspace.assets
+            else "disabled"
+        )
+
+        for button in (
+            self.duplicate_button,
+            self.statistics_button,
+            self.audit_button,
+        ):
+            button.configure(
+                state=scan_state,
+            )
+
     def _refresh_filter_options(self) -> None:
         """Refresh category, extension, and folder choices."""
         self.available_categories = (
             collect_available_categories(
-                self.scanned_assets
+                self.workspace.assets
             )
         )
 
         self.available_extensions = (
             collect_available_extensions(
-                self.scanned_assets
+                self.workspace.assets
             )
         )
 
         self.available_folders = (
             collect_available_folders(
-                self.scanned_assets
+                self.workspace.assets
             )
         )
 
@@ -3116,10 +3082,7 @@ class AniccoliApp(ctk.CTk):
 
     def _update_selection_summary(self) -> None:
         """Refresh selection counts and selection-dependent actions."""
-        summary = summarize_selection(
-            self.scanned_assets,
-            self.asset_selection,
-        )
+        summary = self.workspace.selection_summary()
 
         self.selection_count_label.configure(
             text=(
@@ -3144,43 +3107,28 @@ class AniccoliApp(ctk.CTk):
 
     def _select_visible_assets(self) -> None:
         """Add every currently visible asset to the selection."""
-        if not self.filtered_assets:
-            return
-
-        visible_selection = select_all_assets(
-            self.filtered_assets
-        )
-
-        self.asset_selection = AssetSelection(
-            selected_paths=(
-                self.asset_selection.selected_paths
-                | visible_selection.selected_paths
-            )
+        self.workspace.set_selected(
+            self.filtered_assets,
+            True,
         )
 
         self._apply_filters()
 
     def _invert_visible_selection(self) -> None:
         """Invert selection only for assets visible in the table."""
-        if not self.filtered_assets:
-            return
-
-        visible_selection = select_all_assets(
+        self.workspace.invert_selection(
             self.filtered_assets
-        )
-
-        self.asset_selection = AssetSelection(
-            selected_paths=(
-                self.asset_selection.selected_paths
-                ^ visible_selection.selected_paths
-            )
         )
 
         self._apply_filters()
 
     def _clear_asset_selection(self) -> None:
         """Clear every selected asset."""
-        self.asset_selection = clear_asset_selection()
+        self.workspace.set_selected(
+            self.workspace.assets,
+            False,
+        )
+
         self._apply_filters()
 
     def _set_asset_selected(
@@ -3189,25 +3137,12 @@ class AniccoliApp(ctk.CTk):
         selected: bool,
     ) -> None:
         """Set the selection state of one scanned asset."""
-        if selected:
-            self.asset_selection = self.asset_selection.select(
-                asset
-            )
-        else:
-            self.asset_selection = self.asset_selection.deselect(
-                asset
-            )
+        self.workspace.set_selected(
+            [asset],
+            selected,
+        )
 
         self._update_selection_summary()
-
-    def _selected_assets_for_action(
-        self,
-    ) -> tuple[AssetFile, ...]:
-        """Return selected assets in their original scan order."""
-        return selected_assets(
-            self.scanned_assets,
-            self.asset_selection,
-        )
 
     def _build_query(self) -> AssetQuery:
         """Build the asset query from the search, filter and sort controls."""
@@ -3275,7 +3210,7 @@ class AniccoliApp(ctk.CTk):
 
     def _apply_filters(self) -> None:
         """Filter scanned assets and refresh the visible rows."""
-        if not self.scanned_assets:
+        if not self.workspace.assets:
             self.filtered_assets = []
 
             self.filter_count_label.configure(
@@ -3286,9 +3221,8 @@ class AniccoliApp(ctk.CTk):
             return
 
         try:
-            result = query_assets(
-                self.scanned_assets,
-                self._build_query(),
+            result = self.workspace.query(
+                self._build_query()
             )
         except ValueError as error:
             self.status_label.configure(
@@ -3404,11 +3338,7 @@ class AniccoliApp(ctk.CTk):
 
     def _reset_scan_results(self) -> None:
         """Clear results when another folder is selected."""
-        self.scanned_assets = []
         self.filtered_assets = []
-        self.organization_plan = []
-        self.duplicate_groups = []
-        self.asset_selection = clear_asset_selection()
 
         self.files_count_label.configure(
             text="0",
@@ -3487,16 +3417,16 @@ class AniccoliApp(ctk.CTk):
     def _display_assets(self) -> None:
         """Update the summary cards and apply active filters."""
         total_size = calculate_total_size(
-            self.scanned_assets
+            self.workspace.assets
         )
 
         category_summary = summarize_assets(
-            self.scanned_assets
+            self.workspace.assets
         )
 
         self.files_count_label.configure(
             text=str(
-                len(self.scanned_assets)
+                len(self.workspace.assets)
             ),
         )
 
@@ -3515,7 +3445,7 @@ class AniccoliApp(ctk.CTk):
         self._refresh_category_bar()
         self._clear_result_rows()
 
-        if not self.scanned_assets:
+        if not self.workspace.assets:
             self.filtered_assets = []
 
             self.filter_count_label.configure(
@@ -3611,7 +3541,7 @@ class AniccoliApp(ctk.CTk):
         row_frame.grid_columnconfigure(5, weight=0)
 
         selection_var = ctk.BooleanVar(
-            value=self.asset_selection.contains(asset),
+            value=self.workspace.selection.contains(asset),
         )
 
         selection_checkbox = ctk.CTkCheckBox(
@@ -3808,7 +3738,7 @@ class AniccoliApp(ctk.CTk):
 
     def _open_asset_health_audit(self) -> None:
         """Audit all scanned assets and display detected health issues."""
-        if not self.scanned_assets:
+        if not self.workspace.assets:
             self.status_label.configure(
                 text=self._t("scan_before_health"),
             )
@@ -3827,7 +3757,7 @@ class AniccoliApp(ctk.CTk):
 
         try:
             report = audit_assets(
-                self.scanned_assets,
+                self.workspace.assets,
                 large_file_threshold_bytes=500 * 1024**2,
                 stale_after_days=365,
             )
@@ -3846,7 +3776,7 @@ class AniccoliApp(ctk.CTk):
             self.audit_button.configure(
                 state=(
                     "normal"
-                    if self.scanned_assets
+                    if self.workspace.assets
                     else "disabled"
                 ),
                 text=self._t("asset_health"),
@@ -3877,7 +3807,7 @@ class AniccoliApp(ctk.CTk):
 
     def _open_project_statistics(self) -> None:
         """Calculate and display statistics for all scanned assets."""
-        if not self.scanned_assets:
+        if not self.workspace.assets:
             self.status_label.configure(
                 text=self._t("scan_before_stats"),
             )
@@ -3896,7 +3826,7 @@ class AniccoliApp(ctk.CTk):
 
         try:
             statistics = build_asset_statistics(
-                self.scanned_assets,
+                self.workspace.assets,
                 largest_limit=20,
                 recent_limit=20,
             )
@@ -3915,7 +3845,7 @@ class AniccoliApp(ctk.CTk):
             self.statistics_button.configure(
                 state=(
                     "normal"
-                    if self.scanned_assets
+                    if self.workspace.assets
                     else "disabled"
                 ),
                 text=self._t("project_statistics"),
@@ -3934,31 +3864,12 @@ class AniccoliApp(ctk.CTk):
         )
 
     def _export_inventory_report(self) -> None:
-        """Export all scanned assets as a JSON or CSV inventory report."""
-        selected_asset_records = (
-            self._selected_assets_for_action()
-        )
-
-        if (
-            self.selected_folder is None
-            or not self.scanned_assets
-        ):
-            self.status_label.configure(
-                text=self._t("scan_before_export"),
-            )
-            return
-
-        if not selected_asset_records:
-            self.status_label.configure(
-                text=self._t("select_before_export"),
-            )
-            return
-
+        """Export the selected assets as a JSON or CSV inventory report."""
         selected_path = filedialog.asksaveasfilename(
             parent=self,
             title=self._t("export_title"),
             initialdir=str(
-                self.selected_folder
+                self.workspace.project or Path.home()
             ),
             initialfile="aniccoli_asset_inventory.json",
             defaultextension=".json",
@@ -3999,14 +3910,16 @@ class AniccoliApp(ctk.CTk):
         self.update_idletasks()
 
         try:
-            result = export_asset_report(
-                output_path=output_path,
-                assets=selected_asset_records,
-                project_folder=self.selected_folder,
-                options=self._build_organization_options(),
-                report_format=report_format,
-                overwrite=False,
+            result = self.workspace.export_report(
+                output_path,
+                report_format,
+                self._build_organization_options(),
             )
+        except WorkspaceError as error:
+            self.status_label.configure(
+                text=self._t(error.key),
+            )
+            return
         except (
             PermissionError,
             OSError,
@@ -4029,7 +3942,7 @@ class AniccoliApp(ctk.CTk):
             self.export_button.configure(
                 state=(
                     "normal"
-                    if self.scanned_assets
+                    if self.workspace.assets
                     else "disabled"
                 ),
                 text=self._t("export_report"),
@@ -4057,14 +3970,6 @@ class AniccoliApp(ctk.CTk):
 
     def _analyze_duplicates(self) -> None:
         """Analyze and display exact-content duplicates."""
-        if not self.scanned_assets:
-            self.status_label.configure(
-                text=self._t(
-                    "duplicate_before"
-                ),
-            )
-            return
-
         self.duplicate_button.configure(
             state="disabled",
             text=self._t("analyzing"),
@@ -4079,20 +3984,18 @@ class AniccoliApp(ctk.CTk):
         self.update_idletasks()
 
         try:
-            self.duplicate_groups = (
-                find_duplicate_groups(
-                    self.scanned_assets,
-                    include_empty=False,
-                )
+            duplicate_groups = self.workspace.find_duplicates()
+        except WorkspaceError as error:
+            self.status_label.configure(
+                text=self._t(error.key),
             )
+            return
         except (
             FileNotFoundError,
             PermissionError,
             OSError,
             ValueError,
         ) as error:
-            self.duplicate_groups = []
-
             messagebox.showerror(
                 title=self._t("duplicate_failed_title"),
                 message=str(
@@ -4116,13 +4019,13 @@ class AniccoliApp(ctk.CTk):
 
         duplicate_copy_count = (
             count_duplicate_copies(
-                self.duplicate_groups
+                duplicate_groups
             )
         )
 
-        if self.duplicate_groups:
+        if duplicate_groups:
             group_count = len(
-                self.duplicate_groups
+                duplicate_groups
             )
 
             self.status_label.configure(
@@ -4143,8 +4046,8 @@ class AniccoliApp(ctk.CTk):
 
         DuplicateResultsWindow(
             master=self,
-            duplicate_groups=self.duplicate_groups,
-            project_folder=self.selected_folder,
+            duplicate_groups=duplicate_groups,
+            project_folder=self.workspace.project,
             on_project_changed=(
                 self._refresh_after_duplicate_cleanup
             ),
@@ -4153,7 +4056,7 @@ class AniccoliApp(ctk.CTk):
 
     def _refresh_after_duplicate_cleanup(self) -> None:
         """Rescan the project after duplicate files move or return."""
-        if self.selected_folder is None:
+        if self.workspace.project is None:
             return
 
         self.status_label.configure(
@@ -4166,39 +4069,15 @@ class AniccoliApp(ctk.CTk):
 
     def _preview_organization(self) -> None:
         """Build and display the organization preview."""
-        if (
-            self.selected_folder is None
-            or not self.scanned_assets
-        ):
-            self.status_label.configure(
-                text=self._t(
-                    "scan_before_preview"
-                ),
-            )
-            return
-
-        selected_asset_records = (
-            self._selected_assets_for_action()
-        )
-
-        if not selected_asset_records:
-            self.status_label.configure(
-                text=self._t(
-                    "select_before_preview"
-                ),
-            )
-            return
-
         try:
-            self.organization_plan = (
-                build_organization_plan(
-                    project_folder=self.selected_folder,
-                    assets=selected_asset_records,
-                    options=(
-                        self._build_organization_options()
-                    ),
-                )
+            self.workspace.plan_organization(
+                self._build_organization_options()
             )
+        except WorkspaceError as error:
+            self.status_label.configure(
+                text=self._t(error.key),
+            )
+            return
         except (
             FileNotFoundError,
             NotADirectoryError,
@@ -4210,7 +4089,7 @@ class AniccoliApp(ctk.CTk):
             )
             return
 
-        if not self.organization_plan:
+        if not self.workspace.plan:
             self.status_label.configure(
                 text=(
                     self._t("preview_nothing_status")
@@ -4221,7 +4100,7 @@ class AniccoliApp(ctk.CTk):
                 text=(
                     self._t(
                         "preview_ready_status",
-                        count=len(self.organization_plan),
+                        count=len(self.workspace.plan),
                     )
                 ),
             )
@@ -4230,7 +4109,7 @@ class AniccoliApp(ctk.CTk):
 
     def _open_preview_window(self) -> None:
         """Open a window containing the organization plan."""
-        if self.selected_folder is None:
+        if self.workspace.project is None:
             return
 
         preview_window = ctk.CTkToplevel(
@@ -4284,7 +4163,7 @@ class AniccoliApp(ctk.CTk):
         )
 
         conflict_count = count_conflict_renames(
-            self.organization_plan
+            self.workspace.plan
         )
 
         options = (
@@ -4296,7 +4175,7 @@ class AniccoliApp(ctk.CTk):
             text=(
                 self._t(
                     "preview_summary",
-                    count=len(self.organization_plan),
+                    count=len(self.workspace.plan),
                     conflicts=conflict_count,
                     grouping=self._label(options.date_grouping),
                     source=self._label(options.date_source),
@@ -4335,7 +4214,7 @@ class AniccoliApp(ctk.CTk):
             weight=1,
         )
 
-        if not self.organization_plan:
+        if not self.workspace.plan:
             empty_label = ctk.CTkLabel(
                 master=preview_scroll,
                 text=(
@@ -4356,7 +4235,7 @@ class AniccoliApp(ctk.CTk):
         else:
             self._render_row_page(
                 parent=preview_scroll,
-                items=self.organization_plan,
+                items=self.workspace.plan,
                 create_row=lambda planned_move, row_number: (
                     self._create_preview_row(
                         parent=preview_scroll,
@@ -4410,7 +4289,7 @@ class AniccoliApp(ctk.CTk):
             height=40,
             state=(
                 "normal"
-                if self.organization_plan
+                if self.workspace.plan
                 else "disabled"
             ),
             font=ctk.CTkFont(
@@ -4431,7 +4310,7 @@ class AniccoliApp(ctk.CTk):
         row_number: int,
     ) -> None:
         """Create one source-to-destination preview row."""
-        if self.selected_folder is None:
+        if self.workspace.project is None:
             return
 
         row_frame = ctk.CTkFrame(
@@ -4484,7 +4363,7 @@ class AniccoliApp(ctk.CTk):
 
         destination_relative = (
             planned_move.destination_path.relative_to(
-                self.selected_folder
+                self.workspace.project
             )
         )
 
@@ -4534,14 +4413,11 @@ class AniccoliApp(ctk.CTk):
         preview_window: ctk.CTkToplevel,
     ) -> None:
         """Confirm and execute the organization plan."""
-        if (
-            self.selected_folder is None
-            or not self.organization_plan
-        ):
+        if not self.workspace.plan:
             return
 
         file_count = len(
-            self.organization_plan
+            self.workspace.plan
         )
 
         confirmed = messagebox.askyesno(
@@ -4562,14 +4438,7 @@ class AniccoliApp(ctk.CTk):
         self.update_idletasks()
 
         try:
-            result = apply_moves(
-                self.selected_folder,
-                [
-                    planned_move.as_move()
-                    for planned_move in self.organization_plan
-                ],
-                JournalKind.ORGANIZE,
-            )
+            result = self.workspace.organize()
         except (
             FileNotFoundError,
             NotADirectoryError,
@@ -4621,9 +4490,7 @@ class AniccoliApp(ctk.CTk):
                 parent=self,
             )
 
-        self.organization_plan = []
-
-        self._scan_selected_folder()
+        self._show_scan_results()
         self._refresh_undo_button()
 
         self.status_label.configure(
@@ -4638,31 +4505,17 @@ class AniccoliApp(ctk.CTk):
 
     def _refresh_undo_button(self) -> None:
         """Enable undo when the project has undoable history."""
-        if self.selected_folder is None:
-            self.undo_button.configure(
-                state="disabled",
-            )
-            return
-
-        try:
-            latest_log = latest_journal(
-                self.selected_folder,
-                JournalKind.ORGANIZE,
-            )
-        except OSError:
-            latest_log = None
-
         self.undo_button.configure(
             state=(
                 "normal"
-                if latest_log is not None
+                if self.workspace.latest_undo() is not None
                 else "disabled"
             ),
         )
 
     def _undo_last_organization(self) -> None:
         """Confirm and undo the latest organization."""
-        if self.selected_folder is None:
+        if self.workspace.project is None:
             return
 
         confirmed = messagebox.askyesno(
@@ -4690,10 +4543,7 @@ class AniccoliApp(ctk.CTk):
         self.update_idletasks()
 
         try:
-            result = reverse_latest(
-                self.selected_folder,
-                JournalKind.ORGANIZE,
-            )
+            result = self.workspace.undo()
         except NothingToReverseError:
             messagebox.showinfo(
                 title=self._t("nothing_undo"),
@@ -4776,7 +4626,7 @@ class AniccoliApp(ctk.CTk):
                 parent=self,
             )
 
-        self._scan_selected_folder()
+        self._show_scan_results()
         self._refresh_undo_button()
 
         self.status_label.configure(
